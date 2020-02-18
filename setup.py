@@ -6,7 +6,7 @@ from setuptools import find_packages, setup
 README_CONTENT = (pathlib.Path(__file__).parent / "README.md").read_text()
 
 setup(
-    name='torch-veigen',
+    name='torch-vectorized',
     version='0.0.1',
     description='A quick closed-form solution for volumetric 3x3 matrices Eigen-Decomposition with Pytorch.',
     long_description=README_CONTENT,

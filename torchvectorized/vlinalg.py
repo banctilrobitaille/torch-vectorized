@@ -3,7 +3,7 @@ from math import pi
 import torch
 
 
-def solve_cardan(p, q):
+def _solve_cardan(p, q):
     b, d, h, w = p.size()
     eig_vals = torch.zeros(b, 3, d, h, w).to(p.device)
 
@@ -35,19 +35,19 @@ def solve_cardan(p, q):
     return eig_vals
 
 
-def compute_eigen_values(a, b, c, d):
+def _compute_eigen_values(a, b, c, d):
     if (a == 0).any() and (b == 0.0).any() and (b == 0.0).any() and (c == 0.0).any() and (d == 0.0).any():
         raise ValueError("Unable to solve 3rd degree equation with null coefficient")
 
     if (b == 0.0).any():
-        eig_vals = solve_cardan(c / a, d / a)
+        eig_vals = _solve_cardan(c / a, d / a)
     else:
         a2 = torch.pow(a, 2)
         b2 = torch.pow(b, 2)
 
         p = -b2 / (3 * a2) + c / a
         q = b / (27 * a) * (2 * b2 / a2 - 9.0 * c / a) + d / a
-        eig_vals = solve_cardan(p, q)
+        eig_vals = _solve_cardan(p, q)
 
         s = (-b / (3 * a)).unsqueeze(1).expand(eig_vals.shape)
         eig_vals = eig_vals + s
@@ -55,12 +55,12 @@ def compute_eigen_values(a, b, c, d):
     return eig_vals
 
 
-def compute_eigen_vectors(A, eigen_values):
-    a11 = A[:, 0, :, :, :].unsqueeze(1).expand(eigen_values.size())
-    a12 = A[:, 1, :, :, :].unsqueeze(1).expand(eigen_values.size())
-    a13 = A[:, 2, :, :, :].unsqueeze(1).expand(eigen_values.size())
-    a22 = A[:, 4, :, :, :].unsqueeze(1).expand(eigen_values.size())
-    a23 = A[:, 5, :, :, :].unsqueeze(1).expand(eigen_values.size())
+def _compute_eigen_vectors(input, eigen_values):
+    a11 = input[:, 0, :, :, :].unsqueeze(1).expand(eigen_values.size())
+    a12 = input[:, 1, :, :, :].unsqueeze(1).expand(eigen_values.size())
+    a13 = input[:, 2, :, :, :].unsqueeze(1).expand(eigen_values.size())
+    a22 = input[:, 4, :, :, :].unsqueeze(1).expand(eigen_values.size())
+    a23 = input[:, 5, :, :, :].unsqueeze(1).expand(eigen_values.size())
 
     u0 = a12 * a23 - a13 * (a22 - eigen_values)
     u1 = a12 * a13 - a23 * (a11 - eigen_values)
@@ -73,20 +73,20 @@ def compute_eigen_vectors(A, eigen_values):
     return torch.cat([u0.unsqueeze(1), u1.unsqueeze(1), u2.unsqueeze(1)], dim=1)
 
 
-def vSymeig(A, eigen_vectors=False):
-    a11 = A[:, 0, :, :, :]
-    a12 = A[:, 1, :, :, :]
-    a13 = A[:, 2, :, :, :]
-    a22 = A[:, 4, :, :, :]
-    a23 = A[:, 5, :, :, :]
-    a33 = A[:, 8, :, :, :]
+def vSymeig(input, eigen_vectors=False):
+    a11 = input[:, 0, :, :, :]
+    a12 = input[:, 1, :, :, :]
+    a13 = input[:, 2, :, :, :]
+    a22 = input[:, 4, :, :, :]
+    a23 = input[:, 5, :, :, :]
+    a33 = input[:, 8, :, :, :]
 
     b = a11 + a22 + a33
     c = (-a22 - a11) * a33 + a23 * a23 - a11 * a22 + a13 * a13 + a12 * a12
     d = a11 * a22 * a33 - a12 * a12 * a33 - a11 * a23 * a23 + 2 * a12 * a13 * a23 - a13 * a13 * a22
-    a = torch.Tensor([-1.0]).expand(b.shape).to(A.device)
+    a = torch.Tensor([-1.0]).expand(b.shape).to(input.device)
 
-    eig_vals = compute_eigen_values(a, b, c, d)
+    eig_vals = _compute_eigen_values(a, b, c, d)
 
     if (eig_vals[:, 0, :, :, :] < eig_vals[:, 1, :, :, :]).any():
         index = torch.where(eig_vals[:, 0, :, :, :] < eig_vals[:, 1, :, :, :])
@@ -107,7 +107,7 @@ def vSymeig(A, eigen_vectors=False):
         eig_vals[:, 2, :, :, :][index] = temp_s1
 
     if eigen_vectors:
-        eig_vecs = compute_eigen_vectors(A, eig_vals)
+        eig_vecs = _compute_eigen_vectors(input, eig_vals)
     else:
         eig_vecs = None
 

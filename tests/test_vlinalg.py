@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from hamcrest import assert_that, equal_to
 
-from veigen.linalg import vSymeig
+from torchvectorized.vlinalg import vSymeig
 
 
 class EigDecompositionTest(unittest.TestCase):
