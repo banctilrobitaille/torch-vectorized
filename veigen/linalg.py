@@ -5,10 +5,10 @@ import torch
 
 def solve_cardan(p, q):
     b, d, h, w = p.size()
-    eig_vals = torch.zeros(b, 3, d, h, w).cuda()
+    eig_vals = torch.zeros(b, 3, d, h, w).to(p.device)
 
     if (p == 0.0).any():
-        raise ValueError("Unable to solve cardan equation")
+        raise ValueError("Unable to solve Cardan's equation with p coefficient equal to 0")
     else:
         q2 = torch.pow(q, 2)
         p3 = torch.pow(p, 3)
@@ -17,7 +17,7 @@ def solve_cardan(p, q):
     D[torch.abs(D) < 1e-10] = 0.0
 
     if (D > 0.0).any():
-        print("Invalid value")
+        raise ValueError("Unable to solve Cardan's equation with discriminant greater than 0")
     elif (D < 0.0).any():
         b, d, h, w = torch.where(D < 0.0)
 
@@ -36,8 +36,9 @@ def solve_cardan(p, q):
 
 
 def compute_eigen_values(a, b, c, d):
-    if (b == 0.0).any() and (c == 0.0).any() and (d == 0.0).any():
-        raise ValueError("Unable to solve 3rd degree equation")
+    if (b == 0.0).any() and (b == 0.0).any() and (c == 0.0).any() and (d == 0.0).any():
+        raise ValueError("Unable to solve 3rd degree equation with null coefficient")
+
     if (b == 0.0).any():
         eig_vals = solve_cardan(c / a, d / a)
     else:
@@ -47,8 +48,8 @@ def compute_eigen_values(a, b, c, d):
         p = -b2 / (3 * a2) + c / a
         q = b / (27 * a) * (2 * b2 / a2 - 9.0 * c / a) + d / a
         eig_vals = solve_cardan(p, q)
-        s = (-b / (3 * a)).unsqueeze(1).expand(eig_vals.shape)
 
+        s = (-b / (3 * a)).unsqueeze(1).expand(eig_vals.shape)
         eig_vals = eig_vals + s
 
     return eig_vals
@@ -87,7 +88,7 @@ def symeig(A, eigen_vectors=False):
     b = a11 + a22 + a33
     c = (-a22 - a11) * a33 + a23 * a23 - a11 * a22 + a13 * a13 + a12 * a12
     d = a11 * a22 * a33 - a12 * a12 * a33 - a11 * a23 * a23 + 2 * a12 * a13 * a23 - a13 * a13 * a22
-    a = torch.Tensor([-1.0]).expand(b.shape).cuda()
+    a = torch.Tensor([-1.0]).expand(b.shape).to(A.device)
 
     eig_vals = compute_eigen_values(a, b, c, d)
 
