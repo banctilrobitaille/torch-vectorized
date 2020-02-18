@@ -36,7 +36,7 @@ def solve_cardan(p, q):
 
 
 def compute_eigen_values(a, b, c, d):
-    if (b == 0.0).any() and (b == 0.0).any() and (c == 0.0).any() and (d == 0.0).any():
+    if (a == 0).any() and (b == 0.0).any() and (b == 0.0).any() and (c == 0.0).any() and (d == 0.0).any():
         raise ValueError("Unable to solve 3rd degree equation with null coefficient")
 
     if (b == 0.0).any():
@@ -56,11 +56,11 @@ def compute_eigen_values(a, b, c, d):
 
 
 def compute_eigen_vectors(A, eigen_values):
-    a11 = A[:, 0, :, :, :]
-    a12 = A[:, 1, :, :, :]
-    a13 = A[:, 2, :, :, :]
-    a22 = A[:, 4, :, :, :]
-    a23 = A[:, 5, :, :, :]
+    a11 = A[:, 0, :, :, :].unsqueeze(1).expand(eigen_values.size())
+    a12 = A[:, 1, :, :, :].unsqueeze(1).expand(eigen_values.size())
+    a13 = A[:, 2, :, :, :].unsqueeze(1).expand(eigen_values.size())
+    a22 = A[:, 4, :, :, :].unsqueeze(1).expand(eigen_values.size())
+    a23 = A[:, 5, :, :, :].unsqueeze(1).expand(eigen_values.size())
 
     u0 = a12 * a23 - a13 * (a22 - eigen_values)
     u1 = a12 * a13 - a23 * (a11 - eigen_values)
@@ -73,11 +73,7 @@ def compute_eigen_vectors(A, eigen_values):
     return torch.cat([u0.unsqueeze(1), u1.unsqueeze(1), u2.unsqueeze(1)], dim=1)
 
 
-def cross_product(u, v):
-    return [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]]
-
-
-def symeig(A, eigen_vectors=False):
+def vSymeig(A, eigen_vectors=False):
     a11 = A[:, 0, :, :, :]
     a12 = A[:, 1, :, :, :]
     a13 = A[:, 2, :, :, :]
@@ -111,14 +107,7 @@ def symeig(A, eigen_vectors=False):
         eig_vals[:, 2, :, :, :][index] = temp_s1
 
     if eigen_vectors:
-        if (eig_vals[:, 1, :, :, :] == eig_vals[:, 2, :, :, :]).any():
-            if (eig_vals[:, 0, :, :, :] == eig_vals[:, 1, :, :, :]).any():
-                eig_vecs = None
-            else:
-                eig_vecs = compute_eigen_vectors(A, eig_vals[:, :1, :, :, :])
-                u2 = cross_product(eigen_vectors[:, :, 0, :, :], eigen_vectors[:, :, 1, :, :])
-        else:
-            eig_vecs = compute_eigen_vectors(A, eig_vals)
+        eig_vecs = compute_eigen_vectors(A, eig_vals)
     else:
         eig_vecs = None
 
