@@ -55,22 +55,22 @@ def compute_eigen_values(a, b, c, d):
     return eig_vals
 
 
-def compute_eigen_vectors(A, eigen_value):
+def compute_eigen_vectors(A, eigen_values):
     a11 = A[:, 0, :, :, :]
     a12 = A[:, 1, :, :, :]
     a13 = A[:, 2, :, :, :]
     a22 = A[:, 4, :, :, :]
     a23 = A[:, 5, :, :, :]
 
-    u0 = a12 * a23 - a13 * (a22 - eigen_value)
-    u1 = a12 * a13 - a23 * (a11 - eigen_value)
-    u2 = (a11 - eigen_value) * (a22 - eigen_value) - a12 * a12
+    u0 = a12 * a23 - a13 * (a22 - eigen_values)
+    u1 = a12 * a13 - a23 * (a11 - eigen_values)
+    u2 = (a11 - eigen_values) * (a22 - eigen_values) - a12 * a12
     norm = torch.sqrt(torch.pow(u0, 2) + torch.pow(u1, 2) + torch.pow(u2, 2))
     u0 = u0 / norm
     u1 = u1 / norm
     u2 = u2 / norm
 
-    return [u0, u1, u2]
+    return torch.cat([u0.unsqueeze(1), u1.unsqueeze(1), u2.unsqueeze(1)], dim=1)
 
 
 def cross_product(u, v):
@@ -113,15 +113,13 @@ def symeig(A, eigen_vectors=False):
     if eigen_vectors:
         if (eig_vals[:, 1, :, :, :] == eig_vals[:, 2, :, :, :]).any():
             if (eig_vals[:, 0, :, :, :] == eig_vals[:, 1, :, :, :]).any():
-                pass
-                # identity
+                eig_vecs = None
             else:
-                u0 = compute_eigen_vectors(A, eig_vals[:, 0, :, :, :])
-                u1 = compute_eigen_vectors(A, eig_vals[:, 1, :, :, :])
-                u2 = cross_product(u0, u1)
+                eig_vecs = compute_eigen_vectors(A, eig_vals[:, :1, :, :, :])
+                u2 = cross_product(eigen_vectors[:, :, 0, :, :], eigen_vectors[:, :, 1, :, :])
         else:
-            u0 = compute_eigen_vectors(A, eig_vals[:, 0, :, :, :])
-            u1 = compute_eigen_vectors(A, eig_vals[:, 1, :, :, :])
-            u2 = compute_eigen_vectors(A, eig_vals[:, 2, :, :, :])
+            eig_vecs = compute_eigen_vectors(A, eig_vals)
+    else:
+        eig_vecs = None
 
-    return eig_vals, u0, u1, u2
+    return eig_vals, eig_vecs
