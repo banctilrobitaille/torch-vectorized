@@ -17,7 +17,7 @@ class EigDecompositionTest(unittest.TestCase):
         reconstructed_input = eig_vecs.bmm(torch.diag_embed(eig_vals)).bmm(eig_vecs.transpose(1, 2))
         reconstructed_input = reconstructed_input.reshape(b, d * h * w, 3, 3).permute(0, 2, 3, 1).reshape(b, c, d, h, w)
 
-        assert_that(torch.allclose(reconstructed_input, input, atol=0.1), equal_to(True))
+        assert_that(torch.allclose(reconstructed_input, input, atol=0.000001), equal_to(True))
 
     def sym(self, inputs):
         return (inputs + inputs[:, [0, 3, 6, 1, 4, 7, 2, 5, 8], :, :, :]) / 2.0

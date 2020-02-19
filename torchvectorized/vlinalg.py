@@ -5,7 +5,7 @@ import torch
 
 def _solve_cardan(p, q):
     b, d, h, w = p.size()
-    eig_vals = torch.zeros(b, 3, d, h, w).to(p.device)
+    eig_vals = torch.zeros(b, 3, d, h, w).to(p.device).double()
 
     if (p == 0.0).any():
         raise ValueError("Unable to solve Cardan's equation with p coefficient equal to 0")
@@ -18,7 +18,8 @@ def _solve_cardan(p, q):
 
     if (D > 0.0).any():
         raise ValueError("Unable to solve Cardan's equation with discriminant greater than 0")
-    elif (D < 0.0).any():
+
+    if (D < 0.0).any():
         b, d, h, w = torch.where(D < 0.0)
 
         acosq = torch.acos(-q[b, d, h, w] / 2.0 * torch.sqrt(27 / -p3[b, d, h, w]))
@@ -26,7 +27,8 @@ def _solve_cardan(p, q):
         eig_vals[b, 0, d, h, w] = two_sqrt * torch.cos(1.0 / 3.0 * acosq)
         eig_vals[b, 1, d, h, w] = two_sqrt * torch.cos(1.0 / 3.0 * acosq + 2 * pi / 3)
         eig_vals[b, 2, d, h, w] = two_sqrt * torch.cos(1.0 / 3.0 * acosq + 4 * pi / 3)
-    else:
+
+    if (D == 0.0).any():
         b, d, h, w = torch.where(D == 0.0)
         eig_vals[b, 0, d, h, w] = 3 * q[b, d, h, w] / p[b, d, h, w]
         eig_vals[b, 1, d, h, w] = -3.0 * q[b, d, h, w] / (2.0 * p[b, d, h, w])
@@ -56,11 +58,11 @@ def _compute_eigen_values(a, b, c, d):
 
 
 def _compute_eigen_vectors(input, eigen_values):
-    a11 = input[:, 0, :, :, :].unsqueeze(1).expand(eigen_values.size())
-    a12 = input[:, 1, :, :, :].unsqueeze(1).expand(eigen_values.size())
-    a13 = input[:, 2, :, :, :].unsqueeze(1).expand(eigen_values.size())
-    a22 = input[:, 4, :, :, :].unsqueeze(1).expand(eigen_values.size())
-    a23 = input[:, 5, :, :, :].unsqueeze(1).expand(eigen_values.size())
+    a11 = input[:, 0, :, :, :].unsqueeze(1).expand(eigen_values.size()).double()
+    a12 = input[:, 1, :, :, :].unsqueeze(1).expand(eigen_values.size()).double()
+    a13 = input[:, 2, :, :, :].unsqueeze(1).expand(eigen_values.size()).double()
+    a22 = input[:, 4, :, :, :].unsqueeze(1).expand(eigen_values.size()).double()
+    a23 = input[:, 5, :, :, :].unsqueeze(1).expand(eigen_values.size()).double()
 
     u0 = a12 * a23 - a13 * (a22 - eigen_values)
     u1 = a12 * a13 - a23 * (a11 - eigen_values)
@@ -74,17 +76,17 @@ def _compute_eigen_vectors(input, eigen_values):
 
 
 def vSymeig(input, eigen_vectors=False, flatten_output=False):
-    a11 = input[:, 0, :, :, :]
-    a12 = input[:, 1, :, :, :]
-    a13 = input[:, 2, :, :, :]
-    a22 = input[:, 4, :, :, :]
-    a23 = input[:, 5, :, :, :]
-    a33 = input[:, 8, :, :, :]
+    a11 = input[:, 0, :, :, :].double()
+    a12 = input[:, 1, :, :, :].double()
+    a13 = input[:, 2, :, :, :].double()
+    a22 = input[:, 4, :, :, :].double()
+    a23 = input[:, 5, :, :, :].double()
+    a33 = input[:, 8, :, :, :].double()
 
     b = a11 + a22 + a33
     c = (-a22 - a11) * a33 + a23 * a23 - a11 * a22 + a13 * a13 + a12 * a12
     d = a11 * a22 * a33 - a12 * a12 * a33 - a11 * a23 * a23 + 2 * a12 * a13 * a23 - a13 * a13 * a22
-    a = torch.Tensor([-1.0]).expand(b.shape).to(input.device)
+    a = torch.Tensor([-1.0]).expand(b.shape).to(input.device).double()
 
     eig_vals = _compute_eigen_values(a, b, c, d)
 
@@ -116,4 +118,4 @@ def vSymeig(input, eigen_vectors=False, flatten_output=False):
         eig_vals = eig_vals.permute(0, 2, 3, 4, 1).reshape(b * d * h * w, 3)
         eig_vecs = eig_vecs.permute(0, 3, 4, 5, 1, 2).reshape(b * d * h * w, 3, 3) if eigen_vectors else eig_vecs
 
-    return eig_vals, eig_vecs
+    return eig_vals.float(), eig_vecs.float()
