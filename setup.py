@@ -7,7 +7,7 @@ README_CONTENT = (pathlib.Path(__file__).parent / "README.md").read_text()
 
 setup(
     name='torch-vectorized',
-    version='0.0.3',
+    version='0.0.4',
     description='A quick closed-form solution for volumetric 3x3 matrices Eigen-Decomposition with Pytorch.',
     long_description=README_CONTENT,
     long_description_content_type='text/markdown',
