@@ -1,6 +1,8 @@
 # Volumetric Eigen-Decomposition of 3x3 matrices
 > A quick closed-form solution for volumetric 3x3 matrices Eigen-Decomposition with Pytorch. Solves Eigen-Decomposition of data with shape Bx9xDxHxW, where B is the batch size, 9 is the flattened 3x3 symmetric matrices, D is the depth, H is the Height, W is the width. The goal is to accelerate the Eigen-Decomposition of multiple (>500k) small matrices (3x3) on GPU with Pytorch using an analytical solution.   
 
+<img src="/icons/icon.png" width="100%" vertical-align="bottom">
+
 ## Install me
 
 > pip install torch-vectorized
