@@ -3,7 +3,7 @@ from math import pi
 import torch
 
 
-def _solve_cardan(p, q):
+def _solve_cardan(input, p, q):
     b, d, h, w = p.size()
     eig_vals = torch.zeros(b, 3, d, h, w).to(p.device).double()
 
@@ -28,6 +28,7 @@ def _solve_cardan(p, q):
         eig_vals[b, 1, d, h, w] = two_sqrt * torch.cos(1.0 / 3.0 * acosq + 2 * pi / 3)
         eig_vals[b, 2, d, h, w] = two_sqrt * torch.cos(1.0 / 3.0 * acosq + 4 * pi / 3)
 
+
     if (D == 0.0).any():
         b, d, h, w = torch.where(D == 0.0)
         eig_vals[b, 0, d, h, w] = 3 * q[b, d, h, w] / p[b, d, h, w]
@@ -37,7 +38,7 @@ def _solve_cardan(p, q):
     return eig_vals
 
 
-def _compute_eigen_values(a, b, c, d):
+def _compute_eigen_values(input, a, b, c, d):
     if (a == 0).any() and (b == 0.0).any() and (b == 0.0).any() and (c == 0.0).any() and (d == 0.0).any():
         raise ValueError("Unable to solve 3rd degree equation with null coefficient")
 
@@ -49,7 +50,7 @@ def _compute_eigen_values(a, b, c, d):
 
         p = -b2 / (3 * a2) + c / a
         q = b / (27 * a) * (2 * b2 / a2 - 9.0 * c / a) + d / a
-        eig_vals = _solve_cardan(p, q)
+        eig_vals = _solve_cardan(input, p, q)
 
         s = (-b / (3 * a)).unsqueeze(1).expand(eig_vals.shape)
         eig_vals = eig_vals + s
@@ -88,7 +89,7 @@ def vSymeig(input, eigen_vectors=False, flatten_output=False, double_precision=F
     d = a11 * a22 * a33 - a12 * a12 * a33 - a11 * a23 * a23 + 2 * a12 * a13 * a23 - a13 * a13 * a22
     a = torch.Tensor([-1.0]).expand(b.shape).to(input.device).double()
 
-    eig_vals = _compute_eigen_values(a, b, c, d)
+    eig_vals = _compute_eigen_values(input, a, b, c, d)
 
     if (eig_vals[:, 0, :, :, :] < eig_vals[:, 1, :, :, :]).any():
         index = torch.where(eig_vals[:, 0, :, :, :] < eig_vals[:, 1, :, :, :])
