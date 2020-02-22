@@ -3,7 +3,7 @@ from math import pi
 import torch
 
 
-def _compute_eigen_values(input):
+def _compute_eigen_values(input: torch.Tensor):
     b, c, d, h, w = input.size()
     a11 = input[:, 0, :, :, :].double()
     a12 = input[:, 1, :, :, :].double()
@@ -33,7 +33,7 @@ def _compute_eigen_values(input):
     return eig_vals
 
 
-def _compute_eigen_vectors(input, eigen_values):
+def _compute_eigen_vectors(input: torch.Tensor, eigen_values: torch.Tensor):
     a11 = input[:, 0, :, :, :].unsqueeze(1).expand(eigen_values.size()).double()
     a12 = input[:, 1, :, :, :].unsqueeze(1).expand(eigen_values.size()).double()
     a13 = input[:, 2, :, :, :].unsqueeze(1).expand(eigen_values.size()).double()
@@ -51,7 +51,7 @@ def _compute_eigen_vectors(input, eigen_values):
     return torch.cat([u0.unsqueeze(1), u1.unsqueeze(1), u2.unsqueeze(1)], dim=1)
 
 
-def vSymeig(input, eigen_vectors=False, flatten_output=False):
+def vSymeig(input: torch.Tensor, eigen_vectors=False, flatten_output=False):
     eig_vals = _compute_eigen_values(input)
 
     if eigen_vectors:
@@ -65,3 +65,21 @@ def vSymeig(input, eigen_vectors=False, flatten_output=False):
         eig_vecs = eig_vecs.permute(0, 3, 4, 5, 1, 2).reshape(b * d * h * w, 3, 3) if eigen_vectors else eig_vecs
 
     return eig_vals.float(), eig_vecs.float() if eig_vecs is not None else None
+
+
+def vExpm(input: torch.Tensor):
+    b, c, d, h, w = input.size()
+    eig_vals, eig_vecs = vSymeig(input, eigen_vectors=True, flatten_output=True)
+
+    # UVU^T
+    reconstructed_input = eig_vecs.bmm(torch.diag_embed(torch.exp(eig_vals))).bmm(eig_vecs.transpose(1, 2))
+    return reconstructed_input.reshape(b, d * h * w, 3, 3).permute(0, 2, 3, 1).reshape(b, c, d, h, w)
+
+
+def vLogm(input):
+    b, c, d, h, w = input.size()
+    eig_vals, eig_vecs = vSymeig(input, eigen_vectors=True, flatten_output=True)
+
+    # UVU^T
+    reconstructed_input = eig_vecs.bmm(torch.diag_embed(torch.log(eig_vals))).bmm(eig_vecs.transpose(1, 2))
+    return reconstructed_input.reshape(b, d * h * w, 3, 3).permute(0, 2, 3, 1).reshape(b, c, d, h, w)
