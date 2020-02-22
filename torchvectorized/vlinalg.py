@@ -51,7 +51,7 @@ def _compute_eigen_vectors(input: torch.Tensor, eigen_values: torch.Tensor):
     return torch.cat([u0.unsqueeze(1), u1.unsqueeze(1), u2.unsqueeze(1)], dim=1)
 
 
-def vSymeig(input: torch.Tensor, eigen_vectors=False, flatten_output=False):
+def vSymEig(input: torch.Tensor, eigen_vectors=False, flatten_output=False):
     eig_vals = _compute_eigen_values(input)
 
     if eigen_vectors:
@@ -69,7 +69,7 @@ def vSymeig(input: torch.Tensor, eigen_vectors=False, flatten_output=False):
 
 def vExpm(input: torch.Tensor):
     b, c, d, h, w = input.size()
-    eig_vals, eig_vecs = vSymeig(input, eigen_vectors=True, flatten_output=True)
+    eig_vals, eig_vecs = vSymEig(input, eigen_vectors=True, flatten_output=True)
 
     # UVU^T
     reconstructed_input = eig_vecs.bmm(torch.diag_embed(torch.exp(eig_vals))).bmm(eig_vecs.transpose(1, 2))
@@ -78,7 +78,7 @@ def vExpm(input: torch.Tensor):
 
 def vLogm(input):
     b, c, d, h, w = input.size()
-    eig_vals, eig_vecs = vSymeig(input, eigen_vectors=True, flatten_output=True)
+    eig_vals, eig_vecs = vSymEig(input, eigen_vectors=True, flatten_output=True)
 
     # UVU^T
     reconstructed_input = eig_vecs.bmm(torch.diag_embed(torch.log(eig_vals))).bmm(eig_vecs.transpose(1, 2))

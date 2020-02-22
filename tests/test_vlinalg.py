@@ -3,7 +3,7 @@ import unittest
 import torch
 from hamcrest import assert_that, equal_to
 
-from torchvectorized.vlinalg import vSymeig, vExpm, vLogm
+from torchvectorized.vlinalg import vSymEig, vExpm, vLogm
 
 
 class EigDecompositionTest(unittest.TestCase):
@@ -11,7 +11,7 @@ class EigDecompositionTest(unittest.TestCase):
     def test_should_decompose_symmetric_matrices(self):
         b, c, d, h, w = 16, 9, 32, 32, 32
         input = self.sym(torch.rand(b, c, d, h, w))
-        eig_vals, eig_vecs = vSymeig(input, eigen_vectors=True, flatten_output=True)
+        eig_vals, eig_vecs = vSymEig(input, eigen_vectors=True, flatten_output=True)
 
         # UVU^T
         reconstructed_input = eig_vecs.bmm(torch.diag_embed(eig_vals)).bmm(eig_vecs.transpose(1, 2))
