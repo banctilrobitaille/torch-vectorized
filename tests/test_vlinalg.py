@@ -8,7 +8,7 @@ from torchvectorized.vlinalg import vSymeig
 
 class EigDecompositionTest(unittest.TestCase):
 
-    def test_should_decompose_matrix(self):
+    def test_should_decompose_symmetric_matrices(self):
         b, c, d, h, w = 16, 9, 32, 32, 32
         input = self.sym(torch.rand(b, c, d, h, w))
         eig_vals, eig_vecs = vSymeig(input, eigen_vectors=True, flatten_output=True)

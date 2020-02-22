@@ -30,25 +30,6 @@ def _compute_eigen_values(input):
     eig_vals[:, 2, :, :, :] = q + 2 * p * torch.cos(phi + pi * (2.0 / 3.0))
     eig_vals[:, 1, :, :, :] = 3 * q - eig_vals[:, 0, :, :, :] - eig_vals[:, 2, :, :, :]
 
-    # Reordering eigen values such that eig1 > eig2 > eig3
-    if (eig_vals[:, 0, :, :, :] < eig_vals[:, 1, :, :, :]).any():
-        index = torch.where(eig_vals[:, 0, :, :, :] < eig_vals[:, 1, :, :, :])
-        temp_s0 = eig_vals[:, 0, :, :, :][index]
-        eig_vals[:, 0, :, :, :][index] = eig_vals[:, 1, :, :, :][index]
-        eig_vals[:, 1, :, :, :][index] = temp_s0
-
-    if (eig_vals[:, 0, :, :, :] < eig_vals[:, 2, :, :, :]).any():
-        index = torch.where(eig_vals[:, 0, :, :, :] < eig_vals[:, 2, :, :, :])
-        temp_s0 = eig_vals[:, 0, :, :, :][index]
-        eig_vals[:, 0, :, :, :][index] = eig_vals[:, 2, :, :, :][index]
-        eig_vals[:, 2, :, :, :][index] = temp_s0
-
-    if (eig_vals[:, 1, :, :, :] < eig_vals[:, 2, :, :, :]).any():
-        index = torch.where(eig_vals[:, 1, :, :, :] < eig_vals[:, 2, :, :, :])
-        temp_s1 = eig_vals[:, 1, :, :, :][index]
-        eig_vals[:, 1, :, :, :][index] = eig_vals[:, 2, :, :, :][index]
-        eig_vals[:, 2, :, :, :][index] = temp_s1
-
     return eig_vals
 
 
