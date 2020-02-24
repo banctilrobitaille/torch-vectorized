@@ -1,5 +1,20 @@
-# Volumetric Eigen-Decomposition of 3x3 matrices
+# Torch Vectorized
+> Batched and vectorized operations on volume of 3x3 symmetric matrices with Pytorch. The current Pytorch's implementation of batch eigen-decomposition is very slow when dealing with huge number of small matrices (e.g. 500k x 3x3). **This library offers some basic functions like vSymEig, vExpm and vLogm for fast computation (>250x faster) of huge number of small matrices with Pytorch using an analytical solution.**
+
+## vSymEig
 > A quick closed-form solution for volumetric 3x3 matrices Eigen-Decomposition with Pytorch. Solves Eigen-Decomposition of data with shape Bx9xDxHxW, where B is the batch size, 9 is the flattened 3x3 symmetric matrices, D is the depth, H is the Height, W is the width. The goal is to accelerate the Eigen-Decomposition of multiple (>500k) small matrices (3x3) on GPU with Pytorch using an analytical solution.   
+
+<img src="https://raw.githubusercontent.com/banctilrobitaille/torch-vectorized/master/icons/vsymeig.png" width="100%" vertical-align="bottom">
+
+## vExpm
+> Based on vSymEig, computes the matrix exponential for batch of volumetric 3x3 matrices.
+
+<img src="https://raw.githubusercontent.com/banctilrobitaille/torch-vectorized/master/icons/vexpm.png" width="100%" vertical-align="bottom">
+
+## vLogm
+> Based on vSymEig, computes the matrix logarithm for batch of volumetric 3x3 matrices.
+
+<img src="https://raw.githubusercontent.com/banctilrobitaille/torch-vectorized/master/icons/vlogm.png" width="100%" vertical-align="bottom">
 
 ## Install me
 
