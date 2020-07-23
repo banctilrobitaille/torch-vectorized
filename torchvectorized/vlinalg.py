@@ -66,8 +66,9 @@ def _compute_eigen_vectors(input: torch.Tensor, eigen_values: torch.Tensor, diag
 
     if torch.any(((eigen_values[:, 0, :, :, :] == eigen_values[:, 1, :, :, :]).float() * (
             eigen_values[:, 0, :, :, :] == eigen_values[:, 2, :, :, :]).float()) == 1.0):
-        index = torch.where((eigen_values[:, 0, :, :, :] == eigen_values[:, 1, :, :, :]) == (
-                eigen_values[:, 0, :, :, :] == eigen_values[:, 2, :, :, :]))
+        index = torch.where(
+            (eigen_values[:, 0, :, :, :] + eigen_values[:, 1, :, :, :] + eigen_values[:, 2, :, :, :]) == (
+                    3 * eigen_values[:, 0, :, :, :]))
         u0[index[0], :, index[1], index[2], index[3]] = torch.tensor([1, 0, 0]).double()
         u1[index[0], :, index[1], index[2], index[3]] = torch.tensor([0, 1, 0]).double()
         u2[index[0], :, index[1], index[2], index[3]] = torch.tensor([0, 0, 1]).double()
@@ -100,10 +101,24 @@ def vExpm(input: torch.Tensor):
     return reconstructed_input.reshape(b, d * h * w, 3, 3).permute(0, 2, 3, 1).reshape(b, c, d, h, w)
 
 
-def vLogm(input):
+def vLogm(input: torch.Tensor):
     b, c, d, h, w = input.size()
     eig_vals, eig_vecs = vSymEig(input, eigen_vectors=True, flatten_output=True)
 
     # UVU^T
     reconstructed_input = eig_vecs.bmm(torch.diag_embed(torch.log(eig_vals))).bmm(eig_vecs.transpose(1, 2))
     return reconstructed_input.reshape(b, d * h * w, 3, 3).permute(0, 2, 3, 1).reshape(b, c, d, h, w)
+
+
+def vTrace(input: torch.Tensor):
+    return input[:, 0, :, :, :] + input[:, 4, :, :, :] + input[:, 8, :, :, :]
+
+
+def vDet(input: torch.Tensor):
+    a = input[:, 0, :, :, :].double()
+    b = input[:, 1, :, :, :].double()
+    c = input[:, 2, :, :, :].double()
+    d = input[:, 4, :, :, :].double()
+    e = input[:, 5, :, :, :].double()
+    f = input[:, 8, :, :, :].double()
+    return (a * (d * f - (e ** 2)) + b * (c * e - (b * f)) + c * (b * e - (d * c))).float()
