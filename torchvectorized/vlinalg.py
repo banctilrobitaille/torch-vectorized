@@ -92,22 +92,32 @@ def vSymEig(input: torch.Tensor, eigen_vectors=False, flatten_output=False):
     return eig_vals.float(), eig_vecs.float() if eig_vecs is not None else None
 
 
-def vExpm(input: torch.Tensor):
+def vExpm(input: torch.Tensor, replace_nans=False):
     b, c, d, h, w = input.size()
     eig_vals, eig_vecs = vSymEig(input, eigen_vectors=True, flatten_output=True)
 
     # UVU^T
     reconstructed_input = eig_vecs.bmm(torch.diag_embed(torch.exp(eig_vals))).bmm(eig_vecs.transpose(1, 2))
-    return reconstructed_input.reshape(b, d * h * w, 3, 3).permute(0, 2, 3, 1).reshape(b, c, d, h, w)
+    output = reconstructed_input.reshape(b, d * h * w, 3, 3).permute(0, 2, 3, 1).reshape(b, c, d, h, w)
+
+    if replace_nans:
+        output[torch.where(torch.isnan(output))] = 0
+
+    return output
 
 
-def vLogm(input: torch.Tensor):
+def vLogm(input: torch.Tensor, replace_nans=False):
     b, c, d, h, w = input.size()
     eig_vals, eig_vecs = vSymEig(input, eigen_vectors=True, flatten_output=True)
 
     # UVU^T
     reconstructed_input = eig_vecs.bmm(torch.diag_embed(torch.log(eig_vals))).bmm(eig_vecs.transpose(1, 2))
-    return reconstructed_input.reshape(b, d * h * w, 3, 3).permute(0, 2, 3, 1).reshape(b, c, d, h, w)
+    output = reconstructed_input.reshape(b, d * h * w, 3, 3).permute(0, 2, 3, 1).reshape(b, c, d, h, w)
+
+    if replace_nans:
+        output[torch.where(torch.isnan(output))] = 0
+
+    return output
 
 
 def vTrace(input: torch.Tensor):
