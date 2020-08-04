@@ -50,6 +50,9 @@ def _compute_eigen_values(input: torch.Tensor):
 
 
 def _compute_eigen_vectors(input: torch.Tensor, eigen_values: torch.Tensor):
+    nd = input[:, 1, :, :, :].unsqueeze(1).double() * \
+         input[:, 2, :, :, :].unsqueeze(1).double() * \
+         input[:, 5, :, :, :].unsqueeze(1).double()
     a11 = input[:, 0, :, :, :].unsqueeze(1).expand(eigen_values.size()).double()
     a12 = input[:, 1, :, :, :].unsqueeze(1).expand(eigen_values.size()).double()
     a13 = input[:, 2, :, :, :].unsqueeze(1).expand(eigen_values.size()).double()
@@ -69,6 +72,12 @@ def _compute_eigen_vectors(input: torch.Tensor, eigen_values: torch.Tensor):
         index = torch.where(
             (eigen_values[:, 0, :, :, :] + eigen_values[:, 1, :, :, :] + eigen_values[:, 2, :, :, :]) == (
                     3 * eigen_values[:, 0, :, :, :]))
+        u0[index[0], :, index[1], index[2], index[3]] = torch.tensor([1, 0, 0]).to(input.device).double()
+        u1[index[0], :, index[1], index[2], index[3]] = torch.tensor([0, 1, 0]).to(input.device).double()
+        u2[index[0], :, index[1], index[2], index[3]] = torch.tensor([0, 0, 1]).to(input.device).double()
+
+    if torch.any(nd == 0):
+        index = torch.where(nd == 0)
         u0[index[0], :, index[1], index[2], index[3]] = torch.tensor([1, 0, 0]).to(input.device).double()
         u1[index[0], :, index[1], index[2], index[3]] = torch.tensor([0, 1, 0]).to(input.device).double()
         u2[index[0], :, index[1], index[2], index[3]] = torch.tensor([0, 0, 1]).to(input.device).double()

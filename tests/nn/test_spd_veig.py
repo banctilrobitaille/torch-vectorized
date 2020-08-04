@@ -20,42 +20,28 @@ class SpdVEigTest(unittest.TestCase):
         return torch.clamp(torch.sqrt(num / (denom + 0.0000001)), 0, 1)
 
     def test_should_backward_eig_vals(self):
-        grad_X = torch.ones(1, 3)
+        tensor_1 = torch.eye(3).mm(torch.diag(torch.tensor([1.0, 0.75, 0.5]))).mm(torch.eye(3).T).reshape(1, 9, 1, 1, 1)
+        tensor_2 = torch.eye(3).mm(torch.diag(torch.tensor([2.0, 0.75, 0.5]))).mm(torch.eye(3).T).reshape(1, 9, 1, 1, 1)
 
-        spd = torch.empty(1, 9, 1, 1, 1)
-        spd[0, :, 0, 0, 0] = torch.Tensor([4.2051, 1.1989, 0.6229, 1.1989, 4.1973, 0.6028, 0.6229, 0.6028, 3.5204])
+        tensor_1.requires_grad = True
+        tensor_2.requires_grad = True
 
-        S, U = vSymEig(spd, eigen_vectors=True, flatten_output=True)
+        loss_fn = torch.nn.L1Loss()
+        to_eig_vals = EigVals()
 
-        fa = self.compute_fa(S)
-        gradients = self.backward_eig_vals(S, U, spd, grad_X)
+        eig_1 = to_eig_vals(tensor_1)
+        eig_2 = to_eig_vals(tensor_2)
 
-    def backward_eig_vals(self, S, U, X, grad_X):
-        # pydevd.settrace(suspend=False, trace_only_current_thread=True)
-        b, c, d, h, w = X.size()
-        grad_X = torch.diag_embed(grad_X)
-        grad_X = grad_X.reshape(b, 3, 3, d * h * w).permute(0, 3, 1, 2).reshape(b * d * h * w, 3, 3)
+        fa_1 = self.compute_fa(eig_1)
+        fa_2 = self.compute_fa(eig_2)
 
-        grad_U = 2 * self.sym_grad(grad_X).bmm(U.bmm(torch.diag_embed(S)))
-        grad_S = torch.eye(3).to(grad_X.device) * torch.diag_embed(S).bmm(
-            U.transpose(1, 2).bmm(self.sym_grad(grad_X).bmm(U)))
-
-        S = S.view(1, -1)
-        P = S.view(S.size(1) // 3, 3).unsqueeze(2)
-        P = P.expand(P.size(0), P.size(1), 3)
-        P = P - P.transpose(1, 2)
-        mask_zero = torch.abs(P) == 0
-        P = 1 / P
-        P[mask_zero] = 0
-
-        return U.bmm(self.sym_grad(P.transpose(1, 2) * (U.transpose(1, 2).bmm(grad_U))) + grad_S).bmm(
-            U.transpose(1, 2)).reshape(
-            b, d * h * w, 3, 3).permute(0, 2, 3, 1).reshape(b, c, d, h, w), None
+        loss = loss_fn(fa_1, fa_2)
+        loss.backward()
 
     def test_should_compute_eigen_values(self):
         b, c, d, h, w = 1, 9, 32, 32, 32
         input = self.sym(torch.rand(b, c, d, h, w))
-        eig_vals_expected, eig_vecs = vSymEig(input, eigen_vectors=True)
+        eig_vals_expected, eig_vecs = vSymEig(input, eigen_vectors=True, flatten_output=True)
 
         eig_vals = EigVals()(input)
 
