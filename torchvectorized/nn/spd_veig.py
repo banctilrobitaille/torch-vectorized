@@ -10,7 +10,7 @@ def sym(X):
 class ToEigVals(torch.autograd.Function):
     @staticmethod
     def forward(ctx, X):
-        V, U = vSymEig(X, eigen_vectors=False, flatten_output=False)
+        V, U = vSymEig(X, eigen_vectors=True, flatten_output=False)
         ctx.save_for_backward(V, U, X)
 
         return V
