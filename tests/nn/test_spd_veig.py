@@ -9,20 +9,31 @@ from torchvectorized.vlinalg import vSymEig
 
 class SpdVEigTest(unittest.TestCase):
 
+    def compute_fa(self, eigen_values: torch.Tensor):
+        eig_1 = eigen_values[:, 0]
+        eig_2 = eigen_values[:, 1]
+        eig_3 = eigen_values[:, 2]
+
+        num = (eig_1 - eig_2) ** 2 + (eig_2 - eig_3) ** 2 + (eig_1 - eig_3) ** 2
+        denom = 2 * (eig_1 ** 2 + eig_2 ** 2 + eig_3 ** 2)
+
+        return torch.clamp(torch.sqrt(num / (denom + 0.0000001)), 0, 1)
+
     def test_should_backward_eig_vals(self):
-        grad_X = torch.ones(1, 3, 1, 1, 1)
+        grad_X = torch.ones(1, 3)
 
         spd = torch.empty(1, 9, 1, 1, 1)
         spd[0, :, 0, 0, 0] = torch.Tensor([4.2051, 1.1989, 0.6229, 1.1989, 4.1973, 0.6028, 0.6229, 0.6028, 3.5204])
 
         S, U = vSymEig(spd, eigen_vectors=True, flatten_output=True)
 
+        fa = self.compute_fa(S)
         gradients = self.backward_eig_vals(S, U, spd, grad_X)
 
     def backward_eig_vals(self, S, U, X, grad_X):
         # pydevd.settrace(suspend=False, trace_only_current_thread=True)
         b, c, d, h, w = X.size()
-        grad_X = torch.diag_embed(grad_X.permute(0, 2, 3, 4, 1).reshape(b * d * h * w, 3))
+        grad_X = torch.diag_embed(grad_X)
         grad_X = grad_X.reshape(b, 3, 3, d * h * w).permute(0, 3, 1, 2).reshape(b * d * h * w, 3, 3)
 
         grad_U = 2 * self.sym_grad(grad_X).bmm(U.bmm(torch.diag_embed(S)))
