@@ -20,6 +20,7 @@ class ToEigVals(torch.autograd.Function):
         # pydevd.settrace(suspend=False, trace_only_current_thread=True)
         S, U, X = ctx.saved_tensors
         b, c, d, h, w = X.size()
+        S = S.permute(0, 2, 3, 4, 1).reshape(b * d * h * w, 3)
 
         grad_X = torch.diag_embed(grad_outputs[0].permute(0, 2, 3, 4, 1).reshape(b * d * h * w, 3))
         grad_X = grad_X.reshape(b, 3, 3, d * h * w).permute(0, 3, 1, 2).reshape(b * d * h * w, 3, 3)
