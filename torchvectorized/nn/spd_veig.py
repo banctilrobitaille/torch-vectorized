@@ -1,5 +1,6 @@
 import pydevd
 import torch
+
 from torchvectorized.vlinalg import vSymEig
 
 
@@ -22,10 +23,6 @@ class ToEigVals(torch.autograd.Function):
         b, c, d, h, w = X.size()
 
         grad_X = torch.diag_embed(grad_outputs[0])
-
-        if torch.any(torch.isnan(grad_X)):
-            print("Debug")
-
         grad_U = 2 * sym(grad_X).bmm(U.bmm(torch.diag_embed(S)))
         grad_S = torch.eye(3).to(grad_X.device) * torch.diag_embed(S).bmm(U.transpose(1, 2).bmm(sym(grad_X).bmm(U)))
 
