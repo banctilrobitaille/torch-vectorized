@@ -17,23 +17,24 @@ class SpdVEigTest(unittest.TestCase):
         num = (eig_1 - eig_2) ** 2 + (eig_2 - eig_3) ** 2 + (eig_1 - eig_3) ** 2
         denom = 2 * (eig_1 ** 2 + eig_2 ** 2 + eig_3 ** 2)
 
-        return torch.clamp(torch.sqrt(num / (denom + 0.0000001)), 0, 1)
+        return torch.clamp(torch.sqrt((num / (denom + 1e-15) + 1e-15)), 0, 1)
 
     def test_should_backward_eig_vals(self):
-        tensor_1 = torch.eye(3).mm(torch.diag(torch.tensor([1.0, 0.75, 0.5]))).mm(torch.eye(3).T).reshape(1, 9, 1, 1, 1)
-        tensor_2 = torch.eye(3).mm(torch.diag(torch.tensor([2.0, 0.75, 0.5]))).mm(torch.eye(3).T).reshape(1, 9, 1, 1, 1)
+        b, c, d, h, w = 1, 9, 32, 32, 32
+        real = torch.eye(3).mm(torch.diag(torch.tensor([0.0, 0.0, 0.0]))).mm(torch.eye(3).T).reshape(1, 9, 1, 1, 1)
+        fake = torch.eye(3).mm(torch.diag(torch.tensor([0.0, 0.0, 0.0]))).mm(torch.eye(3).T).reshape(1, 9, 1, 1, 1)
 
-        tensor_1.requires_grad = True
-        tensor_2.requires_grad = True
+        real.requires_grad = False
+        fake.requires_grad = True
 
         loss_fn = torch.nn.L1Loss()
         to_eig_vals = EigVals()
 
-        eig_1 = to_eig_vals(tensor_1)
-        eig_2 = to_eig_vals(tensor_2)
+        eig_1 = to_eig_vals(fake)
+        eig_2 = to_eig_vals(real)
 
-        fa_1 = self.compute_fa(eig_1)
-        fa_2 = self.compute_fa(eig_2)
+        fa_1 = self.compute_fa(torch.exp(eig_1))
+        fa_2 = self.compute_fa(torch.exp(eig_2))
 
         loss = loss_fn(fa_1, fa_2)
         loss.backward()

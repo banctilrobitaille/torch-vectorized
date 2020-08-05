@@ -50,14 +50,13 @@ def _compute_eigen_values(input: torch.Tensor):
 
 
 def _compute_eigen_vectors(input: torch.Tensor, eigen_values: torch.Tensor):
-    nd = input[:, 1, :, :, :].unsqueeze(1).double() * \
-         input[:, 2, :, :, :].unsqueeze(1).double() * \
-         input[:, 5, :, :, :].unsqueeze(1).double()
     a11 = input[:, 0, :, :, :].unsqueeze(1).expand(eigen_values.size()).double()
     a12 = input[:, 1, :, :, :].unsqueeze(1).expand(eigen_values.size()).double()
     a13 = input[:, 2, :, :, :].unsqueeze(1).expand(eigen_values.size()).double()
     a22 = input[:, 4, :, :, :].unsqueeze(1).expand(eigen_values.size()).double()
     a23 = input[:, 5, :, :, :].unsqueeze(1).expand(eigen_values.size()).double()
+
+    nd = torch.pow(a12, 2) + torch.pow(a13, 2) + torch.pow(a23, 2)
 
     u0 = a12 * a23 - a13 * (a22 - eigen_values)
     u1 = a12 * a13 - a23 * (a11 - eigen_values)
