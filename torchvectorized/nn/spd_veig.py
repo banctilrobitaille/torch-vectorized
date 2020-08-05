@@ -1,4 +1,4 @@
-import pydevd
+# import pydevd
 import torch
 
 from torchvectorized.vlinalg import vSymEig
@@ -18,7 +18,7 @@ class ToEigVals(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, *grad_outputs):
-        pydevd.settrace(suspend=False, trace_only_current_thread=True)
+        # pydevd.settrace(suspend=False, trace_only_current_thread=True)
         S, U, X = ctx.saved_tensors
         b, c, d, h, w = X.size()
 
