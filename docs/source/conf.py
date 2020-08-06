@@ -34,7 +34,8 @@ release = '0.1.9'
 extensions = [
     "sphinx_rtd_theme",
     'sphinx.ext.autodoc',
-    'sphinx.ext.imgmath'
+    'sphinx.ext.imgmath',
+    'sphinx.ext.intersphinx'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -59,3 +60,10 @@ html_static_path = ['_static']
 
 
 master_doc = 'index'
+
+intersphinx_mapping = {
+    'PyTorch': ('https://pytorch.org/docs/master/', None),
+    'python': ('https://docs.python.org/3', None),
+    'numpy': ('http://docs.scipy.org/doc/numpy/', None),
+    'matplotlib': ('https://matplotlib.org/', None)
+}
