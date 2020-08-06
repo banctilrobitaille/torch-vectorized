@@ -2,12 +2,11 @@ Torch-Vectorized's API documentation!
 ============================================
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+  :maxdepth: 1
+  :caption: Packages and Modules
 
-.. automodule:: torchvectorized.vlinalg
-    :members:
-
+  vlinalg
+  spd_veig
 
 Indices and tables
 ==================
