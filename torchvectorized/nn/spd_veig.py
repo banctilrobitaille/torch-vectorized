@@ -43,4 +43,10 @@ class EigVals(torch.nn.Module):
         super().__init__()
 
     def forward(self, X):
+        """
+        Compute the eigen_values
+
+        :param X:
+        :return:
+        """
         return ToEigVals.apply(X)
