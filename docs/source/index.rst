@@ -55,7 +55,7 @@ How to use
   :caption: Packages and Modules
 
   vlinalg
-  spd_veig
+  nn
 
 Indices and tables
 ==================

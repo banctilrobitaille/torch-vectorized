@@ -3,11 +3,11 @@ import unittest
 import torch
 from hamcrest import assert_that, equal_to
 
-from torchvectorized.nn.spd_veig import EigVals
+from torchvectorized.nn import EigVals
 from torchvectorized.vlinalg import vSymEig
 
 
-class SpdVEigTest(unittest.TestCase):
+class NnTest(unittest.TestCase):
 
     def compute_fa(self, eigen_values: torch.Tensor):
         eig_1 = eigen_values[:, 0]
@@ -20,7 +20,6 @@ class SpdVEigTest(unittest.TestCase):
         return torch.clamp(torch.sqrt((num / (denom + 1e-15) + 1e-15)), 0, 1)
 
     def test_should_backward_eig_vals(self):
-        b, c, d, h, w = 1, 9, 32, 32, 32
         real = torch.eye(3).mm(torch.diag(torch.tensor([0.0, 0.0, 0.0]))).mm(torch.eye(3).T).reshape(1, 9, 1, 1, 1)
         fake = torch.eye(3).mm(torch.diag(torch.tensor([0.0, 0.0, 0.0]))).mm(torch.eye(3).T).reshape(1, 9, 1, 1, 1)
 
@@ -50,6 +49,3 @@ class SpdVEigTest(unittest.TestCase):
 
     def sym(self, inputs):
         return (inputs + inputs[:, [0, 3, 6, 1, 4, 7, 2, 5, 8], :, :, :]) / 2.0
-
-    def sym_grad(self, X):
-        return 0.5 * (X + X.transpose(1, 2))

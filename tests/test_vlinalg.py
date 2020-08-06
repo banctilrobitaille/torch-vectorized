@@ -3,7 +3,7 @@ import unittest
 import torch
 from hamcrest import assert_that, equal_to
 
-from torchvectorized.nn.spd_veig import EigVals
+from torchvectorized.nn import EigVals
 from torchvectorized.vlinalg import vSymEig, vExpm, vLogm, vDet
 
 
@@ -29,7 +29,7 @@ class VLinalgTest(unittest.TestCase):
 
     def test_should_decompose_identity_matrix(self):
         b, c, d, h, w = 2, 9, 1, 1, 1
-        input = self.sym(torch.zeros(b, c, d, h, w))
+        input = torch.zeros(b, c, d, h, w)
         input[:, 0, :, :, :] = 1.0
         input[:, 4, :, :, :] = 1.0
         input[:, 8, :, :, :] = 1.0

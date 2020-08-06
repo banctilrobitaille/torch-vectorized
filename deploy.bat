@@ -1,2 +1,2 @@
 python setup.py sdist
-python -m twine upload dist/torch-vectorized-0.1.9.tar.gz
+python -m twine upload dist/torch-vectorized-0.1.10.tar.gz
