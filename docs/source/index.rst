@@ -40,13 +40,13 @@ How to use
 
     import torch
     from torchvectorized.utils import sym
-    from torchvectorized.vlinalg import vSymeig
+    from torchvectorized.vlinalg import vSymEig
 
     # Random batch of volumetric 3x3 symmetric matrices of size 16x9x32x32x32
     input = sym(torch.rand(16, 9, 32, 32, 32))
 
     # Output eig_vals with size: 16x3x32x32x32 and eig_vecs with size 16,3,3,32,32,32
-    eig_vals, eig_vecs = vSymeig(input, eigen_vectors=True)
+    eig_vals, eig_vecs = vSymEig(input, eigen_vectors=True)
 
 
 .. toctree::
