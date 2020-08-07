@@ -1,6 +1,8 @@
 What is Torch Vectorized ?
 ==========================
-Batched and vectorized operations on volume of 3x3 symmetric matrices with Pytorch. The current Pytorch's implementation of batch eigen-decomposition is very slow when dealing with huge number of small matrices (e.g. 500k x 3x3). **This library offers some basic functions like vSymEig, vExpm and vLogm for fast computation (>250x faster) of huge number of small matrices with Pytorch using an analytical solution.**
+Torch Vectorized offers batched and vectorized operations on volume of 3x3 symmetric matrices with Pytorch and their associated differentiable torch.nn.Module layers. The current Pytorch's implementation of batch eigen-decomposition is very slow when dealing with huge number of small matrices (e.g. 500k x 3x3). **This library offers some basic functions like vSymEig, vExpm and vLogm for fast computation (>250x faster) of huge number of small matrices with Pytorch using an analytical solution.**
+
+See **Ionescu et al., Matrix backpropagation for deep networks with structured layers, CVPR 2015** for details on the gradients computation
 
 vSymEig
 =======
@@ -51,11 +53,12 @@ How to use
 
 
 .. toctree::
-  :maxdepth: 1
+  :maxdepth: 2
   :caption: Packages and Modules
 
   vlinalg
   nn
+  utils
 
 Indices and tables
 ==================

@@ -4,14 +4,14 @@ import torch
 from torchvectorized.vlinalg import vSymEig
 
 
-def sym(X):
+def _grad_sym(X):
     return 0.5 * (X + X.transpose(1, 2))
 
 
 class EigValsFunc(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, X, flatten_output=False):
-        V, U = vSymEig(X, eigen_vectors=True, flatten_output=flatten_output)
+    def forward(ctx, X):
+        V, U = vSymEig(X, eigen_vectors=True, flatten_output=True)
         ctx.save_for_backward(V, U, X)
 
         return V
@@ -23,8 +23,9 @@ class EigValsFunc(torch.autograd.Function):
         b, c, d, h, w = X.size()
 
         grad_X = torch.diag_embed(grad_outputs[0])
-        grad_U = 2 * sym(grad_X).bmm(U.bmm(torch.diag_embed(S)))
-        grad_S = torch.eye(3).to(grad_X.device) * torch.diag_embed(S).bmm(U.transpose(1, 2).bmm(sym(grad_X).bmm(U)))
+        grad_U = 2 * _grad_sym(grad_X).bmm(U.bmm(torch.diag_embed(S)))
+        grad_S = torch.eye(3).to(grad_X.device) * torch.diag_embed(S).bmm(
+            U.transpose(1, 2).bmm(_grad_sym(grad_X).bmm(U)))
 
         S = S.view(1, -1)
         P = S.view(S.size(1) // 3, 3).unsqueeze(2)
@@ -34,7 +35,8 @@ class EigValsFunc(torch.autograd.Function):
         P = 1 / P
         P[mask_zero] = 0
 
-        return U.bmm(sym(P.transpose(1, 2) * (U.transpose(1, 2).bmm(grad_U))) + grad_S).bmm(U.transpose(1, 2)).reshape(
+        return U.bmm(_grad_sym(P.transpose(1, 2) * (U.transpose(1, 2).bmm(grad_U))) + grad_S).bmm(
+            U.transpose(1, 2)).reshape(
             b, d * h * w, 3, 3).permute(0, 2, 3, 1).reshape(b, c, d, h, w), None
 
 
@@ -42,23 +44,25 @@ class EigVals(torch.nn.Module):
     """
     Differentiable neural network layer (:class:`torch.nn.Module`) that performs matrix exponential on
     every voxel in a volume of flattened 3x3 symmetric matrices of shape **Bx9xDxHxW**.
+
+    See **Ionescu et al., Matrix backpropagation for deep networks with structured layers, CVPR 2015** for details on the
+    gradients computation
     """
 
     def __init__(self):
         super().__init__()
 
-    def forward(self, x: torch.Tensor, flatten_output=False):
+    def forward(self, x: torch.Tensor):
         """
         Takes a volume of flattened 3x3 symmetric matrices of shape **Bx9xDxHxW** and return a volume of their eigenvalues
 
         :param x: A volume of flattened 3x3 symmetric matrices of shape **Bx9xDxHxW**
         :type x: torch.Tensor
-        :param flatten_output:
-        :return: A tensor with shape **Bx3xDxHxW** where every voxel's channels are the eigenvalues of the inpur matrix
+        :return: A tensor with shape **(B*D*H*W)x3** where every voxel's channels are the eigenvalues of the inpur matrix
             at the same spatial location.
         :rtype: torch.Tensor
         """
-        return EigValsFunc.apply(x, flatten_output)
+        return EigValsFunc.apply(x)
 
 
 class LogmFunc(torch.autograd.Function):
@@ -82,8 +86,8 @@ class LogmFunc(torch.autograd.Function):
 
         # Backward Log
         inv_S = torch.diag_embed(1 / S)
-        grad_U = 2 * sym(grad_X).bmm(U.bmm(torch.diag_embed(S_log)))
-        grad_S = torch.eye(3).cuda() * (inv_S.bmm(U.transpose(1, 2).bmm(sym(grad_X).bmm(U))))
+        grad_U = 2 * _grad_sym(grad_X).bmm(U.bmm(torch.diag_embed(S_log)))
+        grad_S = torch.eye(3).cuda() * (inv_S.bmm(U.transpose(1, 2).bmm(_grad_sym(grad_X).bmm(U))))
 
         S = S.view(1, -1)
         P = S.view(S.size(1) // 3, 3).unsqueeze(2)
@@ -93,7 +97,8 @@ class LogmFunc(torch.autograd.Function):
         P = 1 / P
         P[mask_zero] = 0
 
-        return U.bmm(sym(P.transpose(1, 2) * (U.transpose(1, 2).bmm(grad_U))) + grad_S).bmm(U.transpose(1, 2)).reshape(
+        return U.bmm(_grad_sym(P.transpose(1, 2) * (U.transpose(1, 2).bmm(grad_U))) + grad_S).bmm(
+            U.transpose(1, 2)).reshape(
             b, d * h * w, 3, 3).permute(0, 2, 3, 1).reshape(b, c, d, h, w), None
 
 
@@ -101,14 +106,17 @@ class Logm(torch.nn.Module):
     """
     Differentiable neural network layer (:class:`torch.nn.Module`) that performs matrix logarithm on
     every voxel in a volume of flattened 3x3 symmetric matrices of shape **Bx9xDxHxW**.
+
+    See **Ionescu et al., Matrix backpropagation for deep networks with structured layers, CVPR 2015** for details on the
+    gradients computation
     """
 
     def __init__(self):
         super().__init__()
 
     def forward(self, x: torch.Tensor):
-        """
-        Compute the matrix exponential :math:`\mathbf{M} = \mathbf{U} log(\mathbf{\Sigma}) \mathbf{U}^{\intercal}` of
+        r"""
+        Compute the matrix exponential :math:`\mathbf{M} = \mathbf{U} log(\mathbf{\Sigma}) \mathbf{U}^{\top}` of
         every voxel in a volume of flattened 3x3 symmetric matrices of shape **Bx9xDxHxW**.
 
         :param x: A volume of flattened 3x3 symmetric matrices of shape **Bx9xDxHxW**
@@ -137,8 +145,8 @@ class ExpmFunc(torch.autograd.Function):
         b, c, d, h, w = X.size()
 
         grad_X = grad_outputs[0].reshape(b, 3, 3, d * h * w).permute(0, 3, 1, 2).reshape(b * d * h * w, 3, 3)
-        grad_U = 2 * sym(grad_X).bmm(U.bmm(torch.diag_embed(S_exp)))
-        grad_S = torch.eye(3).cuda() * torch.diag_embed(S_exp).bmm(U.transpose(1, 2).bmm(sym(grad_X).bmm(U)))
+        grad_U = 2 * _grad_sym(grad_X).bmm(U.bmm(torch.diag_embed(S_exp)))
+        grad_S = torch.eye(3).cuda() * torch.diag_embed(S_exp).bmm(U.transpose(1, 2).bmm(_grad_sym(grad_X).bmm(U)))
 
         S = S.view(1, -1)
         P = S.view(S.size(1) // 3, 3).unsqueeze(2)
@@ -148,7 +156,8 @@ class ExpmFunc(torch.autograd.Function):
         P = 1 / P
         P[mask_zero] = 0
 
-        return U.bmm(sym(P.transpose(1, 2) * (U.transpose(1, 2).bmm(grad_U))) + grad_S).bmm(U.transpose(1, 2)).reshape(
+        return U.bmm(_grad_sym(P.transpose(1, 2) * (U.transpose(1, 2).bmm(grad_U))) + grad_S).bmm(
+            U.transpose(1, 2)).reshape(
             b, d * h * w, 3, 3).permute(0, 2, 3, 1).reshape(b, c, d, h, w), None
 
 
@@ -156,14 +165,17 @@ class Expm(torch.nn.Module):
     """
     Differentiable neural network layer (:class:`torch.nn.Module`) that performs matrix exponential on
     every voxel in a volume of flattened 3x3 symmetric matrices of shape **Bx9xDxHxW**.
+
+    See **Ionescu et al., Matrix backpropagation for deep networks with structured layers, CVPR 2015** for details on the
+    gradients computation
     """
 
     def __init__(self):
         super().__init__()
 
     def forward(self, x: torch.Tensor):
-        """
-        Compute the matrix exponential :math:`\mathbf{M} = \mathbf{U} exp(\mathbf{\Sigma}) \mathbf{U}^{\intercal}` of
+        r"""
+        Compute the matrix exponential :math:`\mathbf{M} = \mathbf{U} exp(\mathbf{\Sigma}) \mathbf{U}^{\top}` of
         every voxel in a volume of flattened 3x3 symmetric matrices of shape **Bx9xDxHxW**.
 
         :param x: A volume of flattened 3x3 symmetric matrices of shape **Bx9xDxHxW**
@@ -195,8 +207,8 @@ class ExpmLogmFunc(torch.autograd.Function):
 
         # Backward Log
         inv_S = torch.diag_embed(1 / S_exp)
-        grad_U = 2 * sym(grad_X).bmm(U.bmm(torch.diag_embed(S_log)))
-        grad_S = torch.eye(3).cuda() * (inv_S.bmm(U.transpose(1, 2).bmm(sym(grad_X).bmm(U))))
+        grad_U = 2 * _grad_sym(grad_X).bmm(U.bmm(torch.diag_embed(S_log)))
+        grad_S = torch.eye(3).cuda() * (inv_S.bmm(U.transpose(1, 2).bmm(_grad_sym(grad_X).bmm(U))))
 
         S = S_exp.view(1, -1)
         P = S.view(S.size(1) // 3, 3).unsqueeze(2)
@@ -206,11 +218,11 @@ class ExpmLogmFunc(torch.autograd.Function):
         P = 1 / P
         P[mask_zero] = 0
 
-        grad_X = U.bmm(sym(P.transpose(1, 2) * (U.transpose(1, 2).bmm(grad_U))) + grad_S).bmm(U.transpose(1, 2))
+        grad_X = U.bmm(_grad_sym(P.transpose(1, 2) * (U.transpose(1, 2).bmm(grad_U))) + grad_S).bmm(U.transpose(1, 2))
 
         # Backward Exp
-        grad_U = 2 * sym(grad_X).bmm(U.bmm(torch.diag_embed(S_exp)))
-        grad_S = torch.eye(3).cuda() * torch.diag_embed(S_exp).bmm(U.transpose(1, 2).bmm(sym(grad_X).bmm(U)))
+        grad_U = 2 * _grad_sym(grad_X).bmm(U.bmm(torch.diag_embed(S_exp)))
+        grad_S = torch.eye(3).cuda() * torch.diag_embed(S_exp).bmm(U.transpose(1, 2).bmm(_grad_sym(grad_X).bmm(U)))
 
         S = S_log.view(1, -1)
         P = S.view(S.size(1) // 3, 3).unsqueeze(2)
@@ -220,7 +232,8 @@ class ExpmLogmFunc(torch.autograd.Function):
         P = 1 / P
         P[mask_zero] = 0
 
-        return U.bmm(sym(P.transpose(1, 2) * (U.transpose(1, 2).bmm(grad_U))) + grad_S).bmm(U.transpose(1, 2)).reshape(
+        return U.bmm(_grad_sym(P.transpose(1, 2) * (U.transpose(1, 2).bmm(grad_U))) + grad_S).bmm(
+            U.transpose(1, 2)).reshape(
             b, d * h * w, 3, 3).permute(0, 2, 3, 1).reshape(b, c, d, h, w), None
 
 
@@ -228,15 +241,18 @@ class ExpmLogm(torch.nn.Module):
     """
     Differentiable neural network layer (:class:`torch.nn.Module`) that performs consecutive matrix exponential
     and logarithm on every voxel in a volume of flattened 3x3 symmetric matrices of shape **Bx9xDxHxW**.
+
+    See **Ionescu et al., Matrix backpropagation for deep networks with structured layers, CVPR 2015** for details on the
+    gradients computation
     """
 
     def __init__(self):
         super().__init__()
 
     def forward(self, x: torch.Tensor):
-        """
-        Compute the matrix exponential :math:`\mathbf{M} = \mathbf{U} exp(\mathbf{\Sigma}) \mathbf{U}^{\intercal}` and
-        the matrix logarithm :math:`\mathbf{M} = \mathbf{U} log(\mathbf{\Sigma}) \mathbf{U}^{\intercal}` of every voxel
+        r"""
+        Compute the matrix exponential :math:`\mathbf{M} = \mathbf{U} exp(\mathbf{\Sigma}) \mathbf{U}^{\top}` and
+        the matrix logarithm :math:`\mathbf{M} = \mathbf{U} log(\mathbf{\Sigma}) \mathbf{U}^{\top}` of every voxel
         in a volume of flattened 3x3 symmetric matrices of shape **Bx9xDxHxW**.
 
         :param x: A volume of flattened 3x3 symmetric matrices of shape **Bx9xDxHxW**

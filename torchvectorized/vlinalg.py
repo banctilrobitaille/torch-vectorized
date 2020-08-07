@@ -66,9 +66,9 @@ def _compute_eigen_vectors(input: torch.Tensor, eigen_values: torch.Tensor):
     return torch.cat([u0.unsqueeze(1), u1.unsqueeze(1), u2.unsqueeze(1)], dim=1)
 
 
-def vSymEig(inputs: torch.Tensor, eigen_vectors=False, flatten_output=False):
-    """
-    Compute the eigen-decomposition :math:`\mathbf{M} = \mathbf{U} \mathbf{\Sigma} \mathbf{U}^{\intercal}` of every
+def vSymEig(inputs: torch.Tensor, eigen_vectors=False, flatten_output=False, descending_eigen_vals=False):
+    r"""
+    Compute the eigen-decomposition :math:`\mathbf{M} = \mathbf{U} \mathbf{\Sigma} \mathbf{U}^{\top}` of every
     voxel in a volume of flattened 3x3 symmetric matrices of shape **Bx9xDxHxW**.
 
     :param inputs: The input tensor of shape **Bx9xDxHxW**, where the 9 channels represent flattened 3x3 symmetric matrices.
@@ -78,6 +78,8 @@ def vSymEig(inputs: torch.Tensor, eigen_vectors=False, flatten_output=False):
     :param flatten_output: If ``True`` the eigenvalues are returned as: **(B*D*H*W)x3** and the eigenvectors as **(B*D*H*W)x3x3**
         otherwise they are returned with shapes **Bx3xDxHxW** and **Bx3x3xDxHxW** respectively.
     :type flatten_output: bool
+    :param descending_eigen_vals: If ``True``, return the eigenvvalues in descending order
+    :type descending_eigen_vals: bool
     :return: Return the eigenvalues and the eigenvectors as tensors.
     :rtype: tuple[torch.Tensor, None]
 
@@ -85,14 +87,11 @@ def vSymEig(inputs: torch.Tensor, eigen_vectors=False, flatten_output=False):
         .. code-block:: python
 
             import torch
+            from torchvectorized.utils import sym
             from torchvectorized.vlinalg import vSymEig
 
-            def sym(self, inputs):
-                # Make the matrices symmetric: 0.5(X + X.T)
-                return (inputs + inputs[:, [0, 3, 6, 1, 4, 7, 2, 5, 8], :, :, :]) / 2.0
-
             b, c, d, h, w = 1, 9, 32, 32, 32
-            inputs = self.sym(torch.rand(b, c, d, h, w))
+            inputs = sym(torch.rand(b, c, d, h, w))
             eig_vals, eig_vecs = vSymEig(inputs, eigen_vectors=True)
 
     """
@@ -103,6 +102,10 @@ def vSymEig(inputs: torch.Tensor, eigen_vectors=False, flatten_output=False):
     else:
         eig_vecs = None
 
+    eig_vals, sort_idx = torch.sort(eig_vals, dim=1, descending=descending_eigen_vals)
+    sort_idx = sort_idx.unsqueeze(1).expand(eig_vecs.size())
+    eig_vecs = eig_vecs.gather(dim=2, index=sort_idx)
+
     if flatten_output:
         b, c, d, h, w = inputs.size()
         eig_vals = eig_vals.permute(0, 2, 3, 4, 1).reshape(b * d * h * w, 3)
@@ -112,31 +115,28 @@ def vSymEig(inputs: torch.Tensor, eigen_vectors=False, flatten_output=False):
 
 
 def vExpm(inputs: torch.Tensor, replace_nans=False):
-    """
-       Compute the matrix exponential :math:`\mathbf{M} = \mathbf{U} exp(\mathbf{\Sigma}) \mathbf{U}^{\intercal}` of
-       every voxel in a volume of flattened 3x3 symmetric matrices of shape **Bx9xDxHxW**.
+    r"""
+    Compute the matrix exponential :math:`\mathbf{M} = \mathbf{U} exp(\mathbf{\Sigma}) \mathbf{U}^{\top}` of
+    every voxel in a volume of flattened 3x3 symmetric matrices of shape **Bx9xDxHxW**.
 
-       :param inputs: The input tensor of shape **Bx9xDxHxW**, where the 9 channels represent flattened 3x3 symmetric matrices.
-       :type inputs: torch.Tensor
-       :param replace_nans: If ``True``, replace nans by 0
-       :type replace_nans: bool
-       :return: Return a tensor with shape **Bx9xDxHxW** where every voxel is the matrix exponential of the inpur matrix
+    :param inputs: The input tensor of shape **Bx9xDxHxW**, where the 9 channels represent flattened 3x3 symmetric matrices.
+    :type inputs: torch.Tensor
+    :param replace_nans: If ``True``, replace nans by 0
+    :type replace_nans: bool
+    :return: Return a tensor with shape **Bx9xDxHxW** where every voxel is the matrix exponential of the inpur matrix
         at the same spatial location.
-       :rtype: torch.Tensor
+    :rtype: torch.Tensor
 
-       Example:
-           .. code-block:: python
+    Example:
+        .. code-block:: python
 
-               import torch
-               from torchvectorized.vlinalg import vExpm
+            import torch
+            from torchvectorized.utils import sym
+            from torchvectorized.vlinalg import vExpm
 
-               def sym(self, inputs):
-                   # Make the matrices symmetric: 0.5(X + X.T)
-                   return (inputs + inputs[:, [0, 3, 6, 1, 4, 7, 2, 5, 8], :, :, :]) / 2.0
-
-               b, c, d, h, w = 1, 9, 32, 32, 32
-               inputs = self.sym(torch.rand(b, c, d, h, w))
-               output = vExpm(inputs)
+            b, c, d, h, w = 1, 9, 32, 32, 32
+            inputs = sym(torch.rand(b, c, d, h, w))
+            output = vExpm(inputs)
 
        """
     b, c, d, h, w = inputs.size()
@@ -153,33 +153,30 @@ def vExpm(inputs: torch.Tensor, replace_nans=False):
 
 
 def vLogm(inputs: torch.Tensor, replace_nans=False):
-    """
-       Compute the matrix logarithm :math:`\mathbf{M} = \mathbf{U} log(\mathbf{\Sigma}) \mathbf{U}^{\intercal}` of
-       every voxel in a volume of flattened 3x3 symmetric matrices of shape **Bx9xDxHxW**.
+    r"""
+    Compute the matrix logarithm :math:`\mathbf{M} = \mathbf{U} log(\mathbf{\Sigma}) \mathbf{U}^{\top}` of
+    every voxel in a volume of flattened 3x3 symmetric matrices of shape **Bx9xDxHxW**.
 
-       :param inputs: The input tensor of shape **Bx9xDxHxW**, where the 9 channels represent flattened 3x3 symmetric matrices.
-       :type inputs: torch.Tensor
-       :param replace_nans: If ``True``, replace nans by 0
-       :type replace_nans: bool
-       :return: Return a tensor with shape **Bx9xDxHxW** where every voxel is the matrix logarithm of the inpur matrix
+    :param inputs: The input tensor of shape **Bx9xDxHxW**, where the 9 channels represent flattened 3x3 symmetric matrices.
+    :type inputs: torch.Tensor
+    :param replace_nans: If ``True``, replace nans by 0
+    :type replace_nans: bool
+    :return: Return a tensor with shape **Bx9xDxHxW** where every voxel is the matrix logarithm of the inpur matrix
         at the same spatial location.
-       :rtype: torch.Tensor
+    :rtype: torch.Tensor
 
-       Example:
-           .. code-block:: python
+    Example:
+        .. code-block:: python
 
-               import torch
-               from torchvectorized.vlinalg import vLogm
+            import torch
+            from torchvectorized.utils import sym
+            from torchvectorized.vlinalg import vLogm
 
-               def sym(self, inputs):
-                   # Make the matrices symmetric: 0.5(X + X.T)
-                   return (inputs + inputs[:, [0, 3, 6, 1, 4, 7, 2, 5, 8], :, :, :]) / 2.0
+            b, c, d, h, w = 1, 9, 32, 32, 32
+            inputs = sym(torch.rand(b, c, d, h, w))
+            output = vLogm(inputs)
 
-               b, c, d, h, w = 1, 9, 32, 32, 32
-               inputs = self.sym(torch.rand(b, c, d, h, w))
-               output = vLogm(inputs)
-
-       """
+    """
     b, c, d, h, w = inputs.size()
     eig_vals, eig_vecs = vSymEig(inputs, eigen_vectors=True, flatten_output=True)
 
@@ -195,55 +192,49 @@ def vLogm(inputs: torch.Tensor, replace_nans=False):
 
 def vTrace(inputs: torch.Tensor):
     """
-       Compute the trace of every voxel in a volume of flattened 3x3 symmetric matrices of shape **Bx9xDxHxW**.
+    Compute the trace of every voxel in a volume of flattened 3x3 symmetric matrices of shape **Bx9xDxHxW**.
 
-       :param inputs: The input tensor of shape **Bx9xDxHxW**, where the 9 channels represent flattened 3x3 symmetric matrices.
-       :type inputs: torch.Tensor
-       :return: Return a tensor with shape **Bx1xDxHxW** where every voxel is the trace of the inpur matrix at the
+    :param inputs: The input tensor of shape **Bx9xDxHxW**, where the 9 channels represent flattened 3x3 symmetric matrices.
+    :type inputs: torch.Tensor
+    :return: Return a tensor with shape **Bx1xDxHxW** where every voxel is the trace of the inpur matrix at the
         same spatial location.
-       :rtype: torch.Tensor
+    :rtype: torch.Tensor
 
-       Example:
-           .. code-block:: python
+    Example:
+        .. code-block:: python
 
-               import torch
-               from torchvectorized.vlinalg import vTrace
+            import torch
+            from torchvectorized.utils import sym
+            from torchvectorized.vlinalg import vTrace
 
-               def sym(self, inputs):
-                   # Make the matrices symmetric: 0.5(X + X.T)
-                   return (inputs + inputs[:, [0, 3, 6, 1, 4, 7, 2, 5, 8], :, :, :]) / 2.0
+            b, c, d, h, w = 1, 9, 32, 32, 32
+            inputs = sym(torch.rand(b, c, d, h, w))
+            output = vTrace(inputs)
 
-               b, c, d, h, w = 1, 9, 32, 32, 32
-               inputs = self.sym(torch.rand(b, c, d, h, w))
-               output = vTrace(inputs)
-
-       """
+    """
     return inputs[:, 0, :, :, :] + inputs[:, 4, :, :, :] + inputs[:, 8, :, :, :]
 
 
 def vDet(inputs: torch.Tensor):
     """
-           Compute the determinant of every voxel in a volume of flattened 3x3 symmetric matrices of shape **Bx9xDxHxW**.
+    Compute the determinant of every voxel in a volume of flattened 3x3 symmetric matrices of shape **Bx9xDxHxW**.
 
-           :param inputs: The input tensor of shape **Bx9xDxHxW**, where the 9 channels represent flattened 3x3 symmetric matrices.
-           :type inputs: torch.Tensor
-           :return: Return a tensor with shape **Bx1xDxHxW** where every voxel is the determinant of the inpur matrix at the
-            same spatial location.
-           :rtype: torch.Tensor
+    :param inputs: The input tensor of shape **Bx9xDxHxW**, where the 9 channels represent flattened 3x3 symmetric matrices.
+    :type inputs: torch.Tensor
+    :return: Return a tensor with shape **Bx1xDxHxW** where every voxel is the determinant of the inpur matrix at the
+        same spatial location.
+    :rtype: torch.Tensor
 
-           Example:
-               .. code-block:: python
+    Example:
+        .. code-block:: python
 
-                   import torch
-                   from torchvectorized.vlinalg import vDet
+            import torch
+            from torchvectorized.utils import sym
+            from torchvectorized.vlinalg import vDet
 
-                   def sym(self, inputs):
-                       # Make the matrices symmetric: 0.5(X + X.T)
-                       return (inputs + inputs[:, [0, 3, 6, 1, 4, 7, 2, 5, 8], :, :, :]) / 2.0
-
-                   b, c, d, h, w = 1, 9, 32, 32, 32
-                   inputs = self.sym(torch.rand(b, c, d, h, w))
-                   output = vDet(inputs)
+            b, c, d, h, w = 1, 9, 32, 32, 32
+            inputs = sym(torch.rand(b, c, d, h, w))
+            output = vDet(inputs)
 
     """
     a = inputs[:, 0, :, :, :].double()
