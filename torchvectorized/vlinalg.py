@@ -103,8 +103,10 @@ def vSymEig(inputs: torch.Tensor, eigen_vectors=False, flatten_output=False, des
         eig_vecs = None
 
     eig_vals, sort_idx = torch.sort(eig_vals, dim=1, descending=descending_eigen_vals)
-    sort_idx = sort_idx.unsqueeze(1).expand(eig_vecs.size())
-    eig_vecs = eig_vecs.gather(dim=2, index=sort_idx)
+
+    if eigen_vectors:
+        sort_idx = sort_idx.unsqueeze(1).expand(eig_vecs.size())
+        eig_vecs = eig_vecs.gather(dim=2, index=sort_idx)
 
     if flatten_output:
         b, c, d, h, w = inputs.size()
