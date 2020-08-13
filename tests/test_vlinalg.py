@@ -91,3 +91,14 @@ class VLinalgTest(unittest.TestCase):
         eig_vals = EigVals()(input)
 
         assert_that(torch.allclose(eig_vals_expected, eig_vals, atol=0.000001), equal_to(True))
+
+
+    def test_nan(self):
+        inputs = torch.tensor([[[[[3.0000]]], [[[0.00]]], [[[-0.0422]]], [[[0.00]]], [[[3.0000]]], [[[-0.0194]]],
+                                [[[-0.0422]]], [[[-0.0194]]], [[[3.0000]]]]])
+
+        eig_vals, eig_vecs = vSymEig(inputs, eigen_vectors=True, flatten_output=True)
+        expected_eig_vals, expected_eig_vecs = inputs.reshape(3,3).symeig(eigenvectors=True)
+
+        reconstructed_input = eig_vecs.bmm(torch.diag_embed(eig_vals)).bmm(eig_vecs.transpose(1, 2))
+        reconstructed_input = reconstructed_input.reshape(1, 1 * 1 * 1, 3, 3).permute(0, 2, 3, 1).reshape(1, 9, 1, 1, 1)
