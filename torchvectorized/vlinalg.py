@@ -53,6 +53,7 @@ def _compute_eigen_vectors(input: torch.Tensor, eigen_values: torch.Tensor):
     u1 = a12 * a13 - a23 * (a11 - eigen_values)
     u2 = (a11 - eigen_values) * (a22 - eigen_values) - a12 * a12
     norm = torch.sqrt(torch.pow(u0, 2) + torch.pow(u1, 2) + torch.pow(u2, 2))
+    norm[torch.where(norm == 0)] = 1
     u0 = u0 / norm
     u1 = u1 / norm
     u2 = u2 / norm
