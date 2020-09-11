@@ -1,4 +1,3 @@
-# import pydevd
 import torch
 
 from torchvectorized.vlinalg import vSymEig
@@ -18,26 +17,13 @@ class EigValsFunc(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, *grad_outputs):
-        # pydevd.settrace(suspend=False, trace_only_current_thread=True)
         S, U, X = ctx.saved_tensors
         b, c, d, h, w = X.size()
 
         grad_X = torch.diag_embed(grad_outputs[0])
-        grad_U = 2 * _grad_sym(grad_X).bmm(U.bmm(torch.diag_embed(S)))
-        grad_S = torch.eye(3).to(grad_X.device) * torch.diag_embed(S).bmm(
-            U.transpose(1, 2).bmm(_grad_sym(grad_X).bmm(U)))
 
-        S = S.view(1, -1)
-        P = S.view(S.size(1) // 3, 3).unsqueeze(2)
-        P = P.expand(P.size(0), P.size(1), 3)
-        P = P - P.transpose(1, 2)
-        mask_zero = torch.abs(P) == 0
-        P = 1 / P
-        P[mask_zero] = 0
-
-        return U.bmm(_grad_sym(P.transpose(1, 2) * (U.transpose(1, 2).bmm(grad_U))) + grad_S).bmm(
-            U.transpose(1, 2)).reshape(
-            b, d * h * w, 3, 3).permute(0, 2, 3, 1).reshape(b, c, d, h, w), None
+        return _grad_sym(torch.bmm(torch.bmm(U, grad_X), U.transpose(1, 2))).reshape(b, d * h * w, 3, 3) \
+                   .permute(0, 2, 3, 1).reshape(b, c, d, h, w), None
 
 
 class EigVals(torch.nn.Module):
@@ -78,7 +64,6 @@ class LogmFunc(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, *grad_outputs):
-        # pydevd.settrace(suspend=False, trace_only_current_thread=True)
         S_log, S, U, X = ctx.saved_tensors
         b, c, d, h, w = X.size()
 
@@ -98,8 +83,7 @@ class LogmFunc(torch.autograd.Function):
         P[mask_zero] = 0
 
         return U.bmm(_grad_sym(P.transpose(1, 2) * (U.transpose(1, 2).bmm(grad_U))) + grad_S).bmm(
-            U.transpose(1, 2)).reshape(
-            b, d * h * w, 3, 3).permute(0, 2, 3, 1).reshape(b, c, d, h, w), None
+            U.transpose(1, 2)).reshape(b, d * h * w, 3, 3).permute(0, 2, 3, 1).reshape(b, c, d, h, w), None
 
 
 class Logm(torch.nn.Module):
@@ -140,7 +124,6 @@ class ExpmFunc(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, *grad_outputs):
-        # pydevd.settrace(suspend=False, trace_only_current_thread=True)
         S, S_exp, U, X = ctx.saved_tensors
         b, c, d, h, w = X.size()
 
@@ -157,8 +140,7 @@ class ExpmFunc(torch.autograd.Function):
         P[mask_zero] = 0
 
         return U.bmm(_grad_sym(P.transpose(1, 2) * (U.transpose(1, 2).bmm(grad_U))) + grad_S).bmm(
-            U.transpose(1, 2)).reshape(
-            b, d * h * w, 3, 3).permute(0, 2, 3, 1).reshape(b, c, d, h, w), None
+            U.transpose(1, 2)).reshape(b, d * h * w, 3, 3).permute(0, 2, 3, 1).reshape(b, c, d, h, w), None
 
 
 class Expm(torch.nn.Module):
@@ -199,7 +181,6 @@ class ExpmLogmFunc(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, *grad_outputs):
-        # pydevd.settrace(suspend=False, trace_only_current_thread=True)
         S_log, S_exp, U, X = ctx.saved_tensors
         b, c, d, h, w = X.size()
 
