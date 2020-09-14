@@ -75,7 +75,7 @@ class LogmFunc(torch.autograd.Function):
         # Backward Log
         inv_S = torch.diag_embed(1 / S)
         grad_U = 2 * _grad_sym(grad_X).bmm(U.bmm(torch.diag_embed(S_log)))
-        grad_S = torch.eye(3).cuda() * (inv_S.bmm(U.transpose(1, 2).bmm(_grad_sym(grad_X).bmm(U))))
+        grad_S = torch.eye(3).to(grad_X.device) * (inv_S.bmm(U.transpose(1, 2).bmm(_grad_sym(grad_X).bmm(U))))
 
         S = S.view(1, -1)
         P = S.view(S.size(1) // 3, 3).unsqueeze(2)
@@ -133,7 +133,8 @@ class ExpmFunc(torch.autograd.Function):
 
         grad_X = grad_outputs[0].reshape(b, 3, 3, d * h * w).permute(0, 3, 1, 2).reshape(b * d * h * w, 3, 3)
         grad_U = 2 * _grad_sym(grad_X).bmm(U.bmm(torch.diag_embed(S_exp)))
-        grad_S = torch.eye(3).cuda() * torch.diag_embed(S_exp).bmm(U.transpose(1, 2).bmm(_grad_sym(grad_X).bmm(U)))
+        grad_S = torch.eye(3).to(grad_X.device) * torch.diag_embed(S_exp).bmm(
+            U.transpose(1, 2).bmm(_grad_sym(grad_X).bmm(U)))
 
         S = S.view(1, -1)
         P = S.view(S.size(1) // 3, 3).unsqueeze(2)
@@ -194,7 +195,7 @@ class ExpmLogmFunc(torch.autograd.Function):
         # Backward Log
         inv_S = torch.diag_embed(1 / S_exp)
         grad_U = 2 * _grad_sym(grad_X).bmm(U.bmm(torch.diag_embed(S_log)))
-        grad_S = torch.eye(3).cuda() * (inv_S.bmm(U.transpose(1, 2).bmm(_grad_sym(grad_X).bmm(U))))
+        grad_S = torch.eye(3).to(grad_X.device) * (inv_S.bmm(U.transpose(1, 2).bmm(_grad_sym(grad_X).bmm(U))))
 
         S = S_exp.view(1, -1)
         P = S.view(S.size(1) // 3, 3).unsqueeze(2)
@@ -208,7 +209,8 @@ class ExpmLogmFunc(torch.autograd.Function):
 
         # Backward Exp
         grad_U = 2 * _grad_sym(grad_X).bmm(U.bmm(torch.diag_embed(S_exp)))
-        grad_S = torch.eye(3).cuda() * torch.diag_embed(S_exp).bmm(U.transpose(1, 2).bmm(_grad_sym(grad_X).bmm(U)))
+        grad_S = torch.eye(3).to(grad_X.device) * torch.diag_embed(S_exp).bmm(
+            U.transpose(1, 2).bmm(_grad_sym(grad_X).bmm(U)))
 
         S = S_log.view(1, -1)
         P = S.view(S.size(1) // 3, 3).unsqueeze(2)
