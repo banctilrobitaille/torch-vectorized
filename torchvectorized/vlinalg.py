@@ -69,12 +69,12 @@ def _compute_eigenvectors(input: torch.Tensor, eigenvalues: torch.Tensor):
 
 def vSymEig(inputs: torch.Tensor, eigenvectors=False, flatten_output=False, descending_eigenvals=False):
     r"""
-    Compute the eigen-decomposition :math:`\mathbf{M} = \mathbf{U} \mathbf{\Sigma} \mathbf{U}^{\top}` of every
+    Compute the eigendecomposition :math:`\mathbf{M} = \mathbf{U} \mathbf{\Sigma} \mathbf{U}^{\top}` of every
     voxel in a volume of flattened 3x3 symmetric matrices of shape **Bx9xDxHxW**.
 
     :param inputs: The input tensor of shape **Bx9xDxHxW**, where the 9 channels represent flattened 3x3 symmetric matrices.
     :type inputs: torch.Tensor
-    :param eigenvectors: If ``True``, computes the eigen-vectors.
+    :param eigenvectors: If ``True``, computes the eigenvectors.
     :type eigenvectors: bool
     :param flatten_output: If ``True`` the eigenvalues are returned as: **(B*D*H*W)x3** and the eigenvectors as **(B*D*H*W)x3x3**
         otherwise they are returned with shapes **Bx3xDxHxW** and **Bx3x3xDxHxW** respectively.
