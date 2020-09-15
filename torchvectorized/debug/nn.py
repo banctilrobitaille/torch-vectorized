@@ -29,7 +29,7 @@ class EigValsFunc(torch.autograd.Function):
 
 
 class EigVals(torch.nn.Module):
-    """
+    """s
     Differentiable neural network layer (:class:`torch.nn.Module`) that performs eigen-decomposition on
     every voxel in a volume of flattened 3x3 symmetric matrices of shape **Bx9xDxHxW** and return the eigenvalues.
 
