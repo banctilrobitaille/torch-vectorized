@@ -36,7 +36,7 @@ def torch_func_gpu(b):
 
 
 if __name__ == "__main__":
-    batch_sizes = range(0, 32)
+    batch_sizes = range(0, 2)
 
     y1 = [vectorized_func(batch_size) for batch_size in batch_sizes]
     y2 = [torch_func(batch_size) for batch_size in batch_sizes]
@@ -47,7 +47,8 @@ if __name__ == "__main__":
     plt.ylabel('Execution time (\u03BCs)')
     plt.title('SymEig exec. time (\u03BCs) vs batch size (CPU)')
     plt.legend()
-    plt.show()
+    plt.savefig("cpu_performance.png")
+
     if torch.cuda.is_available():
         y1 = [vectorized_func_gpu(batch_size) for batch_size in batch_sizes]
         y2 = [torch_func_gpu(batch_size) for batch_size in batch_sizes]
@@ -58,4 +59,4 @@ if __name__ == "__main__":
         plt.ylabel('Execution time (\u03BCs)')
         plt.title('SymEig exec. time (\u03BCs) vs batch size (GPU)')
         plt.legend()
-        plt.show()
+        plt.savefig("gpu_performance.png")
