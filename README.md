@@ -33,7 +33,7 @@ from torchvectorized.vlinalg import vSymEig
 input = sym(torch.rand(16, 9, 32, 32, 32))
 
 # Output eig_vals with size: 16x3x32x32x32 and eig_vecs with size 16,3,3,32,32,32
-eig_vals, eig_vecs = vSymEig(input, eigen_vectors=True)
+eig_vals, eig_vecs = vSymEig(input, eigenvectors=True)
 ```
 
 ## Contributing
