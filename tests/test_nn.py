@@ -124,7 +124,7 @@ class NnTest(unittest.TestCase):
     def test_should_compute_eigen_values(self):
         b, c, d, h, w = 1, 9, 32, 32, 32
         input = sym(torch.rand(b, c, d, h, w))
-        eig_vals_expected, eig_vecs = vSymEig(input, eigen_vectors=True, flatten_output=True)
+        eig_vals_expected, eig_vecs = vSymEig(input, eigenvectors=True, flatten_output=True)
 
         eig_vals = EigVals()(input)
 

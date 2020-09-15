@@ -13,7 +13,7 @@ class VLinalgTest(unittest.TestCase):
     def test_should_decompose_symmetric_matrices(self):
         b, c, d, h, w = 1, 9, 32, 32, 32
         input = sym(torch.rand(b, c, d, h, w))
-        eig_vals, eig_vecs = vSymEig(input, eigen_vectors=True, flatten_output=True, descending_eigen_vals=False)
+        eig_vals, eig_vecs = vSymEig(input, eigenvectors=True, flatten_output=True, descending_eigenvals=False)
 
         # UVU^T
         reconstructed_input = eig_vecs.bmm(torch.diag_embed(eig_vals)).bmm(eig_vecs.transpose(1, 2))
@@ -23,7 +23,7 @@ class VLinalgTest(unittest.TestCase):
         assert_that(torch.any(eig_vals[:, 0] > eig_vals[:, 1]), equal_to(False))
         assert_that(torch.any(eig_vals[:, 1] > eig_vals[:, 2]), equal_to(False))
 
-        eig_vals, eig_vecs = vSymEig(input, eigen_vectors=True, flatten_output=True, descending_eigen_vals=True)
+        eig_vals, eig_vecs = vSymEig(input, eigenvectors=True, flatten_output=True, descending_eigenvals=True)
 
         # UVU^T
         reconstructed_input = eig_vecs.bmm(torch.diag_embed(eig_vals)).bmm(eig_vecs.transpose(1, 2))
@@ -47,7 +47,7 @@ class VLinalgTest(unittest.TestCase):
         input[:, 4, :, :, :] = 1.0
         input[:, 8, :, :, :] = 1.0
 
-        eig_vals, eig_vecs = vSymEig(input, eigen_vectors=True, flatten_output=True)
+        eig_vals, eig_vecs = vSymEig(input, eigenvectors=True, flatten_output=True)
 
         assert_that(torch.allclose(eig_vals, torch.ones((2, 3)), atol=0.000001), equal_to(True))
         assert_that(torch.allclose(eig_vecs, torch.eye(3).unsqueeze(0).repeat(2, 1, 1), atol=0.000001), equal_to(True))
@@ -60,7 +60,7 @@ class VLinalgTest(unittest.TestCase):
         input[0, 8, :, :, :] = 1.0
         input[1, :, :, :, :] = 0.0
 
-        eig_vals, eig_vecs = vSymEig(input, eigen_vectors=True, flatten_output=True)
+        eig_vals, eig_vecs = vSymEig(input, eigenvectors=True, flatten_output=True)
         expected_eig_vals, expected_eig_vecs = input.unsqueeze(0).reshape(b, 3, 3).symeig(eigenvectors=True)
 
         assert_that(torch.allclose(eig_vals, expected_eig_vals, atol=0.000001), equal_to(True))
@@ -70,7 +70,7 @@ class VLinalgTest(unittest.TestCase):
         b, c, d, h, w = 2, 9, 1, 1, 1
         input = sym(torch.zeros(b, c, d, h, w))
 
-        eig_vals, eig_vecs = vSymEig(input, eigen_vectors=True, flatten_output=True)
+        eig_vals, eig_vecs = vSymEig(input, eigenvectors=True, flatten_output=True)
 
         assert_that(torch.allclose(eig_vals, torch.zeros((2, 3)), atol=0.000001), equal_to(True))
         assert_that(torch.allclose(eig_vecs, torch.eye(3).unsqueeze(0).repeat(2, 1, 1), atol=0.000001), equal_to(True))
@@ -86,7 +86,7 @@ class VLinalgTest(unittest.TestCase):
     def test_should_compute_eigen_values(self):
         b, c, d, h, w = 1, 9, 32, 32, 32
         input = sym(torch.rand(b, c, d, h, w))
-        eig_vals_expected, eig_vecs = vSymEig(input, eigen_vectors=True, flatten_output=True)
+        eig_vals_expected, eig_vecs = vSymEig(input, eigenvectors=True, flatten_output=True)
 
         eig_vals = EigVals()(input)
 

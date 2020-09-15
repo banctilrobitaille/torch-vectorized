@@ -3,7 +3,7 @@ from math import pi
 import torch
 
 
-def _compute_eigen_values(input: torch.Tensor):
+def _compute_eigenvalues(input: torch.Tensor):
     b, c, d, h, w = input.size()
     a11 = input[:, 0, :, :, :].double()
     a12 = input[:, 1, :, :, :].double()
@@ -40,18 +40,18 @@ def _compute_eigen_values(input: torch.Tensor):
     return eig_vals
 
 
-def _compute_eigen_vectors(input: torch.Tensor, eigen_values: torch.Tensor):
-    a11 = input[:, 0, :, :, :].unsqueeze(1).expand(eigen_values.size()).double()
-    a12 = input[:, 1, :, :, :].unsqueeze(1).expand(eigen_values.size()).double()
-    a13 = input[:, 2, :, :, :].unsqueeze(1).expand(eigen_values.size()).double()
-    a22 = input[:, 4, :, :, :].unsqueeze(1).expand(eigen_values.size()).double()
-    a23 = input[:, 5, :, :, :].unsqueeze(1).expand(eigen_values.size()).double()
+def _compute_eigenvectors(input: torch.Tensor, eigenvalues: torch.Tensor):
+    a11 = input[:, 0, :, :, :].unsqueeze(1).expand(eigenvalues.size()).double()
+    a12 = input[:, 1, :, :, :].unsqueeze(1).expand(eigenvalues.size()).double()
+    a13 = input[:, 2, :, :, :].unsqueeze(1).expand(eigenvalues.size()).double()
+    a22 = input[:, 4, :, :, :].unsqueeze(1).expand(eigenvalues.size()).double()
+    a23 = input[:, 5, :, :, :].unsqueeze(1).expand(eigenvalues.size()).double()
 
     nd = torch.pow(a12[:, 0, ...], 2) + torch.pow(a13[:, 0, ...], 2) + torch.pow(a23[:, 0, ...], 2)
 
-    u0 = a12 * a23 - a13 * (a22 - eigen_values)
-    u1 = a12 * a13 - a23 * (a11 - eigen_values)
-    u2 = (a11 - eigen_values) * (a22 - eigen_values) - a12 * a12
+    u0 = a12 * a23 - a13 * (a22 - eigenvalues)
+    u1 = a12 * a13 - a23 * (a11 - eigenvalues)
+    u2 = (a11 - eigenvalues) * (a22 - eigenvalues) - a12 * a12
     norm = torch.sqrt(torch.pow(u0, 2) + torch.pow(u1, 2) + torch.pow(u2, 2))
     norm[torch.where(norm == 0)] = 1
     u0 = u0 / norm
@@ -67,20 +67,20 @@ def _compute_eigen_vectors(input: torch.Tensor, eigen_values: torch.Tensor):
     return torch.cat([u0.unsqueeze(1), u1.unsqueeze(1), u2.unsqueeze(1)], dim=1)
 
 
-def vSymEig(inputs: torch.Tensor, eigen_vectors=False, flatten_output=False, descending_eigen_vals=False):
+def vSymEig(inputs: torch.Tensor, eigenvectors=False, flatten_output=False, descending_eigenvals=False):
     r"""
     Compute the eigen-decomposition :math:`\mathbf{M} = \mathbf{U} \mathbf{\Sigma} \mathbf{U}^{\top}` of every
     voxel in a volume of flattened 3x3 symmetric matrices of shape **Bx9xDxHxW**.
 
     :param inputs: The input tensor of shape **Bx9xDxHxW**, where the 9 channels represent flattened 3x3 symmetric matrices.
     :type inputs: torch.Tensor
-    :param eigen_vectors: If ``True``, computes the eigen-vectors.
-    :type eigen_vectors: bool
+    :param eigenvectors: If ``True``, computes the eigen-vectors.
+    :type eigenvectors: bool
     :param flatten_output: If ``True`` the eigenvalues are returned as: **(B*D*H*W)x3** and the eigenvectors as **(B*D*H*W)x3x3**
         otherwise they are returned with shapes **Bx3xDxHxW** and **Bx3x3xDxHxW** respectively.
     :type flatten_output: bool
-    :param descending_eigen_vals: If ``True``, return the eigenvvalues in descending order
-    :type descending_eigen_vals: bool
+    :param descending_eigenvals: If ``True``, return the eigenvvalues in descending order
+    :type descending_eigenvals: bool
     :return: Return the eigenvalues and the eigenvectors as tensors.
     :rtype: tuple[torch.Tensor, None]
 
@@ -93,26 +93,26 @@ def vSymEig(inputs: torch.Tensor, eigen_vectors=False, flatten_output=False, des
 
             b, c, d, h, w = 1, 9, 32, 32, 32
             inputs = sym(torch.rand(b, c, d, h, w))
-            eig_vals, eig_vecs = vSymEig(inputs, eigen_vectors=True)
+            eig_vals, eig_vecs = vSymEig(inputs, eigenvectors=True)
 
     """
-    eig_vals = _compute_eigen_values(inputs)
+    eig_vals = _compute_eigenvalues(inputs)
 
-    if eigen_vectors:
-        eig_vecs = _compute_eigen_vectors(inputs, eig_vals)
+    if eigenvectors:
+        eig_vecs = _compute_eigenvectors(inputs, eig_vals)
     else:
         eig_vecs = None
 
-    eig_vals, sort_idx = torch.sort(eig_vals, dim=1, descending=descending_eigen_vals)
+    eig_vals, sort_idx = torch.sort(eig_vals, dim=1, descending=descending_eigenvals)
 
-    if eigen_vectors:
+    if eigenvectors:
         sort_idx = sort_idx.unsqueeze(1).expand(eig_vecs.size())
         eig_vecs = eig_vecs.gather(dim=2, index=sort_idx)
 
     if flatten_output:
         b, c, d, h, w = inputs.size()
         eig_vals = eig_vals.permute(0, 2, 3, 4, 1).reshape(b * d * h * w, 3)
-        eig_vecs = eig_vecs.permute(0, 3, 4, 5, 1, 2).reshape(b * d * h * w, 3, 3) if eigen_vectors else eig_vecs
+        eig_vecs = eig_vecs.permute(0, 3, 4, 5, 1, 2).reshape(b * d * h * w, 3, 3) if eigenvectors else eig_vecs
 
     return eig_vals.float(), eig_vecs.float() if eig_vecs is not None else None
 
@@ -143,7 +143,7 @@ def vExpm(inputs: torch.Tensor, replace_nans=False):
 
        """
     b, c, d, h, w = inputs.size()
-    eig_vals, eig_vecs = vSymEig(inputs, eigen_vectors=True, flatten_output=True)
+    eig_vals, eig_vecs = vSymEig(inputs, eigenvectors=True, flatten_output=True)
 
     # UVU^T
     reconstructed_input = eig_vecs.bmm(torch.diag_embed(torch.exp(eig_vals))).bmm(eig_vecs.transpose(1, 2))
@@ -181,7 +181,7 @@ def vLogm(inputs: torch.Tensor, replace_nans=False):
 
     """
     b, c, d, h, w = inputs.size()
-    eig_vals, eig_vecs = vSymEig(inputs, eigen_vectors=True, flatten_output=True)
+    eig_vals, eig_vecs = vSymEig(inputs, eigenvectors=True, flatten_output=True)
 
     # UVU^T
     reconstructed_input = eig_vecs.bmm(torch.diag_embed(torch.log(eig_vals))).bmm(eig_vecs.transpose(1, 2))

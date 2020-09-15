@@ -10,7 +10,7 @@ def _grad_sym(X):
 class EigValsFunc(torch.autograd.Function):
     @staticmethod
     def forward(ctx, X):
-        V, U = vSymEig(X, eigen_vectors=True, flatten_output=True)
+        V, U = vSymEig(X, eigenvectors=True, flatten_output=True)
         ctx.save_for_backward(V, U, X)
 
         return V
@@ -55,7 +55,7 @@ class LogmFunc(torch.autograd.Function):
     @staticmethod
     def forward(ctx, X):
         b, c, d, h, w = X.size()
-        S, U = vSymEig(X, eigen_vectors=True, flatten_output=True)
+        S, U = vSymEig(X, eigenvectors=True, flatten_output=True)
 
         ctx.save_for_backward(torch.log(S), S, U, X)
 
@@ -115,7 +115,7 @@ class ExpmFunc(torch.autograd.Function):
     @staticmethod
     def forward(ctx, X):
         b, c, d, h, w = X.size()
-        S, U = vSymEig(X, eigen_vectors=True, flatten_output=True)
+        S, U = vSymEig(X, eigenvectors=True, flatten_output=True)
 
         ctx.save_for_backward(S, torch.exp(S), U, X)
 
@@ -172,7 +172,7 @@ class ExpmLogmFunc(torch.autograd.Function):
     @staticmethod
     def forward(ctx, X):
         b, c, d, h, w = X.size()
-        S_log, U = vSymEig(X, eigen_vectors=True, flatten_output=True)
+        S_log, U = vSymEig(X, eigenvectors=True, flatten_output=True)
 
         ctx.save_for_backward(S_log, torch.exp(S_log), U, X)
 

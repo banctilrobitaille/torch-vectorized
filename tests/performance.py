@@ -10,7 +10,7 @@ def vectorized_func(b):
     c, d, h, w = 9, 32, 32, 32
     input = sym(torch.rand(b, c, d, h, w))
 
-    return timeit.timeit(lambda: vSymEig(input, eigen_vectors=False), number=5) / (5 * 1000)
+    return timeit.timeit(lambda: vSymEig(input, eigenvectors=False), number=5) / (5 * 1000)
 
 
 def torch_func(b):
