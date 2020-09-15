@@ -36,7 +36,7 @@ def torch_func_gpu(b):
 
 
 if __name__ == "__main__":
-    batch_sizes = range(0, 2)
+    batch_sizes = range(0, 48)
 
     y1 = [vectorized_func(batch_size) for batch_size in batch_sizes]
     y2 = [torch_func(batch_size) for batch_size in batch_sizes]
